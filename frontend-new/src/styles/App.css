@@ -1,0 +1,85 @@
+.App {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-bar {
+  z-index: 1201;
+}
+
+.drawer-paper {
+  width: 240px;
+  border-right: 1px solid #333;
+}
+
+.content {
+  flex-grow: 1;
+  padding: 20px;
+  transition: margin-left 0.3s;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background-color: inherit;
+  min-height: calc(100vh - 64px);
+}
+
+.content-section {
+  width: 90%; /* Use a percentage to make it more flexible */
+  max-width: 900px; /* Increase max-width for larger screens */
+  margin: 20px auto;
+  padding: 30px;
+  border: 1px solid #333;
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1));
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .content {
+    padding: 10px;
+  }
+
+  .content-section {
+    width: 95%; /* Slightly wider on mobile */
+    max-width: 100%;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 10px auto;
+  }
+
+  .app-bar {
+    padding: 8px 16px;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 960px) {
+  .content {
+    padding: 15px;
+  }
+
+  .content-section {
+    width: 90%;
+    max-width: 700px;
+    padding: 20px;
+    margin: 15px auto;
+  }
+}
+
+@media (min-width: 961px) {
+  .content-section {
+    width: 80%; /* Wider on larger screens */
+    max-width: 1000px; /* Allow it to grow on very large screens */
+  }
+}
