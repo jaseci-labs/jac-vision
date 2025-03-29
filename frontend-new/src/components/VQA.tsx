@@ -44,13 +44,13 @@ const VQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => 
   const loadModels = async () => {
     try {
       const response = await fetchModels();
-      const models = response.data.models || [];
+      const models = response.models || []; // Access response.models directly
       const options = models.map((model: string) => ({
         value: model,
         label: model,
       }));
       setModelOptions(options);
-    } catch (error) {
+    } catch (error: any) {
       setError('Error loading models. Check the console.');
       toast.error('Error loading models. Check the console.');
       console.error(error);
@@ -60,8 +60,8 @@ const VQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => 
   const loadVqaHistory = async () => {
     try {
       const response = await fetchVqaHistory();
-      setVqaHistory(response.data.history || []);
-    } catch (error) {
+      setVqaHistory(response.history || []); // Access response.history directly
+    } catch (error: any) {
       setError('Error loading VQA history. Check the console.');
       toast.error('Error loading VQA history. Check the console.');
       console.error(error);
@@ -114,7 +114,6 @@ const VQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => 
   };
 
   const validateApiKey = (key: string): boolean => {
-    // Basic validation: Check if the key is non-empty and has a reasonable length
     return key.trim().length > 10;
   };
 
@@ -130,7 +129,7 @@ const VQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => 
       const response = await testApiKey(apiKey, apiType);
       toast.success('API key is valid!');
     } catch (error: any) {
-      const errorMessage = error.response?.data?.answer || 'Invalid API key. Check the console.';
+      const errorMessage = error.message || 'Invalid API key. Check the console.';
       setError(errorMessage);
       toast.error(errorMessage);
       console.error(error);
@@ -170,13 +169,12 @@ const VQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => 
         vqaMode === 'api' ? apiKey : undefined,
         vqaMode === 'api' ? apiType : undefined
       );
-      setVqaAnswer(response.data.answer);
+      setVqaAnswer(response.answer); // Access response.answer directly
       toast.success('VQA processed successfully!');
       await loadVqaHistory();
-      // Clear the question input field after successful submission
       setVqaQuestion('');
     } catch (error: any) {
-      const errorMessage = error.response?.data?.answer || 'Error processing VQA. Check the console.';
+      const errorMessage = error.message || 'Error processing VQA. Check the console.';
       setError(errorMessage);
       setVqaAnswer('');
       toast.error(errorMessage);
@@ -234,13 +232,12 @@ const VQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => 
         vqaMode === 'api' ? apiKey : undefined,
         vqaMode === 'api' ? apiType : undefined
       );
-      setRunModelResult(`Model response: ${vqaResponse.data.answer}`);
+      setRunModelResult(`Model response: ${vqaResponse.answer}`); // Access vqaResponse.answer directly
       toast.success('Model ran successfully!');
       await loadVqaHistory();
-      // Clear the question input field after successful "Run Model"
       setVqaQuestion('');
     } catch (error: any) {
-      const errorMessage = error.response?.data?.answer || 'Error running model. Check the console.';
+      const errorMessage = error.message || 'Error running model. Check the console.';
       setError(errorMessage);
       setRunModelResult('');
       toast.error(errorMessage);
@@ -253,14 +250,14 @@ const VQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => 
     setDeleteLoading((prev) => ({ ...prev, [model]: true }));
     try {
       const response = await deleteModel(model);
-      toast.success(response.data.message || `Model ${model} deleted successfully!`);
+      toast.success(response.message || `Model ${model} deleted successfully!`); // Access response.message directly
       await loadModels();
       if (selectedModel === model) {
         setSelectedModel(null);
       }
     } catch (error: any) {
       console.error('Delete Error', error);
-      toast.error(error.response?.data?.message || 'Failed to delete model.');
+      toast.error(error.message || 'Failed to delete model.');
     }
     setDeleteLoading((prev) => ({ ...prev, [model]: false }));
   };
@@ -269,11 +266,11 @@ const VQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => 
     setHistoryDeleteLoading((prev) => ({ ...prev, [historyId]: true }));
     try {
       const response = await deleteVqaHistory(historyId);
-      toast.success(response.data.message || `History entry ${historyId} deleted successfully!`);
+      toast.success(response.message || `History entry ${historyId} deleted successfully!`); // Access response.message directly
       await loadVqaHistory();
     } catch (error: any) {
       console.error('Delete History Error', error);
-      toast.error(error.response?.data?.error || 'Failed to delete history entry.');
+      toast.error(error.message || 'Failed to delete history entry.');
     }
     setHistoryDeleteLoading((prev) => ({ ...prev, [historyId]: false }));
   };
@@ -282,11 +279,11 @@ const VQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => 
     setClearHistoryLoading(true);
     try {
       const response = await clearVqaHistory();
-      toast.success(response.data.message || 'All VQA history cleared successfully!');
+      toast.success(response.message || 'All VQA history cleared successfully!'); // Access response.message directly
       await loadVqaHistory();
     } catch (error: any) {
       console.error('Clear History Error', error);
-      toast.error(error.response?.data?.error || 'Failed to clear history.');
+      toast.error(error.message || 'Failed to clear history.');
     }
     setClearHistoryLoading(false);
   };

@@ -22,15 +22,16 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
   const loadModels = async () => {
     try {
       const response = await fetchModels();
-      const models = response.data.models || [];
+      const models = response.models || []; // Access response.models directly
       const options = models.map((model: string) => ({
         value: model,
         label: model,
       }));
       setModelOptions(options);
-    } catch (error) {
-      setError('Error loading models. Check the console.');
-      toast.error('Error loading models. Check the console.');
+    } catch (error: any) {
+      const errorMessage = error.message || 'Error loading models. Check the console.';
+      setError(errorMessage);
+      toast.error(errorMessage);
       console.error(error);
     }
   };
@@ -82,13 +83,14 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setFineTuneStatus('Starting fine-tuning...');
     try {
       const response = await finetuneModel(selectedModel, datasetLink);
-      setFineTuneStatus(response.data.message);
-      toast.success(response.data.message);
+      setFineTuneStatus(response.message); // Access response.message directly
+      toast.success(response.message);
       await loadModels();
-    } catch (error) {
-      setError('Error during fine-tuning. Check the console.');
+    } catch (error: any) {
+      const errorMessage = error.message || 'Error during fine-tuning. Check the console.';
+      setError(errorMessage);
       setFineTuneStatus('');
-      toast.error('Error during fine-tuning. Check the console.');
+      toast.error(errorMessage);
       console.error(error);
     }
     setFineTuneLoading(false);
@@ -98,11 +100,15 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setDeleteLoading((prev) => ({ ...prev, [model]: true }));
     try {
       const response = await deleteModel(model);
-      toast.success(response.data.message || `Model ${model} deleted successfully!`);
+      toast.success(response.message || `Model ${model} deleted successfully!`); // Access response.message directly
       await loadModels();
+      if (selectedModel === model) {
+        setSelectedModel(null);
+      }
     } catch (error: any) {
+      const errorMessage = error.message || 'Failed to delete model.';
+      toast.error(errorMessage);
       console.error('Delete Error', error);
-      toast.error(error.response?.data?.message || 'Failed to delete model.');
     }
     setDeleteLoading((prev) => ({ ...prev, [model]: false }));
   };

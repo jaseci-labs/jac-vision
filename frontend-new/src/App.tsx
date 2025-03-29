@@ -22,6 +22,7 @@ import {
   Settings as SettingsIcon,
   Menu as MenuIcon,
   ChevronLeft as ChevronLeftIcon,
+  Image as ImageIcon, // Added for Image Captioning
 } from '@mui/icons-material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { ToastContainer, toast } from 'react-toastify';
@@ -32,6 +33,7 @@ import Search from './components/Search';
 import Models from './components/Models';
 import Developer from './components/Developer';
 import Settings from './components/Settings';
+import ImageCaptioning from './components/ImageCaptioning'; // Added for Image Captioning
 import logo from './assets/logo.png';
 import './styles/App.css';
 
@@ -87,6 +89,8 @@ const App: React.FC = () => {
         return <Developer themeMode={themeMode} />;
       case 'settings':
         return <Settings themeMode={themeMode} setThemeMode={setThemeMode} />;
+      case 'image-captioning': // Added for Image Captioning
+        return <ImageCaptioning toast={toast} />;
       default:
         return null;
     }
@@ -158,6 +162,7 @@ const App: React.FC = () => {
               { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
               { text: 'Models', icon: <ModelsIcon />, section: 'models' },
               { text: 'Fine-Tune', icon: <FineTuneIcon />, section: 'fine-tune' },
+              { text: 'Image Captioning', icon: <ImageIcon />, section: 'image-captioning' }, // Added for Image Captioning
               { text: 'Developer', icon: <DeveloperIcon />, section: 'developer' },
               { text: 'Settings', icon: <SettingsIcon />, section: 'settings' },
             ].map((item) => (
@@ -201,7 +206,7 @@ const App: React.FC = () => {
           style={{
             marginLeft: isMobile ? 0 : (drawerOpen ? 240 : 60),
             transition: 'margin-left 0.3s',
-            paddingTop: '80px', // Add extra padding to ensure content isn't cut off
+            paddingTop: '80px',
           }}
         >
           {renderContent()}

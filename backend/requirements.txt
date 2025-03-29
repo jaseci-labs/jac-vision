@@ -1,0 +1,31 @@
+# FastAPI and server dependencies
+fastapi==0.115.4
+uvicorn==0.32.0
+
+# Image processing (for VQA and image captioning)
+Pillow==10.4.0
+
+# System monitoring (for /system-info endpoint)
+psutil==6.1.0
+
+# HTTP requests (for Hugging Face API calls)
+requests==2.32.3
+
+# AI and machine learning (for VQA, chatbot, fine-tuning, and image captioning)
+google-generativeai==0.8.3
+openai==1.52.2
+transformers==4.46.0
+torch==2.5.0
+huggingface_hub==0.26.1
+
+# Data validation (for FastAPI)
+pydantic==2.9.2
+
+# Optional: Uncomment the line below if you want to use PyTorch with GPU support (CUDA)
+# torch==2.5.0+cu121
+
+# Optional: Uncomment the line below if you are using PostgreSQL for VQA history
+# psycopg2-binary==2.9.9
+
+# Optional: Uncomment the line below if you are using MySQL for VQA history
+# mysql-connector-python==9.1.0
