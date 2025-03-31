@@ -8,6 +8,6 @@ export default defineConfig({
     open: true, // Automatically open the browser
   },
   build: {
-    outDir: 'build', // Match CRA's output directory
+    outDir: 'dist', // Match CRA's output directory
   },
 });
