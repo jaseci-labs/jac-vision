@@ -754,39 +754,198 @@ async def clear_data():
     return {"message": "All data cleared successfully"}
 
 
-# Pydantic model for chatbot requests
+
+# Updated ChatbotRequest model with use case fields
 class ChatbotRequest(BaseModel):
     message: str
     api_key: str
-    # Removed api_type since we're using Gemini only
+    task_type: str = "general"
+    param_range_min: float = 3.0
+    param_range_max: float = 7.0
+    hardware_gpu_memory: Optional[float] = None  # Explicitly allow None
+    preference: Optional[str] = None
+    
 
-# Utility function for model recommendations
-def get_model_recommendations(task: str) -> str:
-    recommendations = {
-        "vqa": "For Visual Question Answering (VQA), I recommend using a model like 'Qwen/Qwen2-VL-7B-Instruct'. It’s great for tasks involving both images and text. You’ll need to provide a dataset with images and questions.",
-        "image_captioning": "For image captioning, a model like 'Salesforce/blip-image-captioning-base' works well. It can generate descriptions for images. Make sure your dataset contains images and corresponding captions.",
-        "low_compute_1b": (
-            "Here are some 1B parameter models that work well on low-compute devices:\n"
-            "1. **Qwen2.5-1.5B-Instruct** (1.54B parameters): Created by Alibaba Cloud, this model is great for tasks like coding, math, and working with over 29 languages, including English and Chinese. It can handle long texts (up to 32,768 tokens).\n"
-            "2. **distilbert-base-uncased** (66M parameters, but a good alternative if 1B is too large): A smaller model for text classification tasks, like sorting text into categories.\n"
-            "3. **OuteTTS-0.2-500M** (500M parameters, another alternative): A text-to-speech model by OuteAI, useful for generating speech from text.\n"
-            "Note: If these models are still too large, you may need to search for smaller models on Hugging Face."
-        ),
-        "visual_language": (
-            "For fine-tuning a visual language model (VLM) for tasks like damage assessment, you need a model that can process both images and text. Since you're looking for a 1B parameter model, here are some recommendations:\n"
-            "1. **Salesforce/blip-image-captioning-base** (223M parameters): This model is designed for image captioning, making it a good fit for generating textual descriptions of damage from images. It’s smaller than 1B parameters, which makes it efficient for low-compute devices.\n"
-            "2. **openai/clip-vit-base-patch32** (151M parameters): CLIP models are excellent for vision-language tasks, as they can understand both images and text. This model can be fine-tuned for damage assessment by training it to classify or describe damage levels.\n"
-            "3. **microsoft/git-base** (124M parameters): This VLM is designed for image captioning and visual question answering. It can be fine-tuned to generate damage descriptions or answer questions about the extent of damage in images.\n"
-            "**Dataset Suggestions**:\n"
-            "- **Search on Kaggle**: Look for datasets like 'Car Damage Detection' or 'Building Damage Assessment' on Kaggle. These often include images of damaged items with labels.\n"
-            "- **Create Your Own Dataset**: Collect images of damaged items (e.g., cars, buildings) and label them with descriptions (e.g., 'minor scratch', 'severe crack'). Tools like Labelbox can help with labeling.\n"
-            "**Hardware Note**: These models require at least 4GB of GPU memory for fine-tuning. Ensure your system meets this requirement."
-        ),
-        "general": "If you’re unsure about your task, a versatile model like 'google/gemma-2-9b-it' can handle a variety of tasks, including text generation and classification. Describe your task, and I can suggest something more specific!"
+# Existing search_huggingface_models function (unchanged)
+def search_huggingface_models(query: str, tags: list = [], param_range_min: float = 3.0, param_range_max: float = 7.0, hardware_gpu_memory: float = None, preference: str = None, limit: int = 5) -> list:
+    try:
+        url = "https://huggingface.co/api/models"
+        params = {
+            "search": query,
+            "filter": tags,
+            "limit": limit,
+            "sort": "downloads",
+            "direction": -1,
+        }
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        models = response.json()
+
+        filtered_models = []
+        for model in models:
+            model_name = model["id"]
+            downloads = model.get("downloads", 0)
+            tags = model.get("tags", [])
+
+            param_count = None
+            if "3b" in model_name.lower() or "3 billion" in tags:
+                param_count = 3.0
+            elif "7b" in model_name.lower() or "7 billion" in tags:
+                param_count = 7.0
+            elif "qwen2-vl-7b" in model_name.lower():
+                param_count = 7.0
+            elif "llava" in model_name.lower() and "7b" in model_name.lower():
+                param_count = 7.0
+            elif "paligemma-3b" in model_name.lower():
+                param_count = 3.0
+            else:
+                continue
+
+            if param_count < param_range_min or param_count > param_range_max:
+                continue
+
+            gpu_memory = param_count * 2
+            if hardware_gpu_memory and gpu_memory > hardware_gpu_memory:
+                continue
+
+            pros = []
+            cons = []
+            if "vqa" in tags or "visual-question-answering" in tags:
+                pros.append("Strong in visual question answering tasks.")
+            if "image-captioning" in tags:
+                pros.append("Good for generating image captions.")
+            if "multilingual" in tags:
+                pros.append("Supports multiple languages.")
+            if param_count <= 3.5:
+                pros.append("Efficient, suitable for lower-end hardware.")
+            else:
+                cons.append("Higher computational requirements.")
+
+            if downloads < 1000:
+                cons.append("Less community testing (fewer downloads).")
+            else:
+                pros.append("Well-tested by the community (high downloads).")
+
+            if "instruct" in model_name.lower():
+                pros.append("Fine-tuned for instruction-following, good for conversational tasks.")
+            else:
+                cons.append("May require additional fine-tuning for conversational tasks.")
+
+            if preference:
+                if preference.lower() == "efficiency" and param_count > 4.0:
+                    continue
+                elif preference.lower() == "performance" and downloads < 1000:
+                    continue
+
+            filtered_models.append({
+                "name": model_name,
+                "param_count": param_count,
+                "tags": tags,
+                "downloads": downloads,
+                "gpu_memory": gpu_memory,
+                "pros": pros,
+                "cons": cons
+            })
+
+        return filtered_models[:limit]
+    except Exception as e:
+        logger.error(f"Error searching Hugging Face API: {str(e)}")
+        return []
+
+# Existing get_model_recommendations function (updated to use request fields)
+def get_model_recommendations(task: str, request: ChatbotRequest) -> str:
+    task_settings = {
+        "vqa": {
+            "query": "vision-language",
+            "tags": ["vqa", "visual-question-answering"],
+            "intro": "For Visual Question Answering (VQA), here are some recommended vision-language models that can process both images and text to answer questions:"
+        },
+        "image_captioning": {
+            "query": "image-captioning",
+            "tags": ["image-captioning"],
+            "intro": "For image captioning, here are some recommended models that can generate textual descriptions of images:"
+        },
+        "visual_language": {
+            "query": "vision-language",
+            "tags": ["vision-language", "image-captioning", "vqa"],
+            "intro": "For vision-language tasks (e.g., damage assessment, image understanding), here are some recommended models that can process both images and text:"
+        },
+        "general": {
+            "query": "vision-language",
+            "tags": [],
+            "intro": "Since your task is not specific, here are some versatile vision-language models that can handle a variety of tasks involving images and text:"
+        }
     }
-    return recommendations.get(task.lower(), recommendations["general"])
 
-# Chatbot endpoint
+    settings = task_settings.get(task.lower(), task_settings["general"])
+    query = settings["query"]
+    tags = settings["tags"]
+    intro = settings["intro"]
+
+    models = search_huggingface_models(
+        query=query,
+        tags=tags,
+        param_range_min=request.param_range_min,
+        param_range_max=request.param_range_max,
+        hardware_gpu_memory=request.hardware_gpu_memory,
+        preference=request.preference,
+        limit=3
+    )
+
+    if not models:
+        return (
+            f"{intro}\n\n"
+            "I couldn’t find any models matching your criteria at the moment. Here’s how you can search for suitable models on Hugging Face:\n"
+            "1. **Visit Hugging Face**: Go to https://huggingface.co/models.\n"
+            "2. **Use the Search Bar**: Type keywords like 'vision-language' or 'image-captioning'.\n"
+            "3. **Filter by Tags**: Use filters like 'vqa' or 'image-captioning' to narrow down the results.\n"
+            "4. **Check Model Details**: Look for models with parameter counts and hardware requirements that match your setup."
+        )
+
+    response = f"{intro}\n\n"
+    for i, model in enumerate(models, 1):
+        response += (
+            f"{i}. **{model['name']}**:\n"
+            f"   - **Parameter Count**: {model['param_count']:.2f}B parameters ({int(model['param_count'] * 1000)}M).\n"
+            f"   - **Purpose**: Suitable for {' and '.join(model['tags'])} tasks, such as {'damage assessment' if task == 'visual_language' else 'processing images and text'}.\n"
+            f"   - **Hardware Requirements**: Requires approximately {model['gpu_memory']:.1f}GB of GPU memory for inference.\n"
+            f"   - **Downloads**: {model['downloads']} downloads on Hugging Face.\n"
+            f"   - **Pros**:\n"
+            f"     - {'\n     - '.join(model['pros'])}\n"
+            f"   - **Cons**:\n"
+            f"     - {'\n     - '.join(model['cons'])}\n"
+            f"   - **Link**: [View on Hugging Face](https://huggingface.co/{model['name']})\n"
+        )
+
+    if task in ["visual_language", "vqa", "image_captioning"]:
+        response += "\n**Dataset Suggestions for Fine-Tuning**:\n"
+        if task == "visual_language":
+            response += (
+                "- **Search on Kaggle**: Look for datasets like 'Car Damage Detection' or 'Building Damage Assessment'.\n"
+                "- **Create Your Own Dataset**: Collect images of damaged items and label them with descriptions.\n"
+            )
+        elif task == "vqa":
+            response += (
+                "- **Search on Kaggle**: Look for datasets like 'VQA v2' or 'COCO-QA'.\n"
+                "- **Create Your Own Dataset**: Collect images and write question-answer pairs.\n"
+            )
+        elif task == "image_captioning":
+            response += (
+                "- **Search on Kaggle**: Look for datasets like 'COCO Captions' or 'Flickr30k'.\n"
+                "- **Create Your Own Dataset**: Collect images and write descriptive captions.\n"
+            )
+
+    response += (
+        "\n**Fine-Tuning Tips**:\n"
+        "- **Prepare Your Dataset**: Ensure compatibility with the model.\n"
+        "- **Set Up Your Environment**: Use a GPU with at least 4GB memory.\n"
+        "- **Fine-Tune the Model**: Use Hugging Face `transformers` library.\n"
+        "- **Monitor Performance**: Evaluate on a validation set.\n"
+    )
+
+    return response
+
+# Updated chatbot endpoint
 @app.post("/chatbot")
 async def chatbot(request: ChatbotRequest):
     message = request.message
@@ -797,52 +956,66 @@ async def chatbot(request: ChatbotRequest):
     if not api_key:
         raise HTTPException(status_code=400, detail="API key is required")
 
-    # System prompt to guide the chatbot
     system_prompt = (
         "You are a professional assistant for a model search and fine-tuning application. Your goal is to assist users, including non-technical ones, in finding and downloading machine learning models from Hugging Face. "
-        "Provide clear, concise, and professional answers in a structured, point-wise format (e.g., using bullet points or numbered steps) to ensure clarity and ease of understanding. "
+        "Provide clear, concise, and professional answers in a structured, point-wise format. "
         "Avoid technical jargon unless necessary, and explain terms in simple language. "
-        "If a user asks for a list of models, provide the answer in a numbered list with brief descriptions of each model, including its purpose and any relevant details (e.g., parameter count, task suitability). "
-        "If exact model names or counts are unavailable, guide the user on how to find the information themselves in a step-by-step manner. "
-        "You can help with: "
-        "1. Recommending models based on the user’s task (e.g., Visual Question Answering, image captioning). "
-        "2. Explaining model types (e.g., text-generation, vision-language) in simple terms. "
-        "3. Guiding the user through the process of searching and downloading a model. "
-        "4. Answering common questions like 'What is a vision-language model?' or 'How do I download a restricted model?' "
-        "5. Explaining model sizes (e.g., what does '1B parameters' mean?) and whether a user’s system can handle it. "
-        "Always be patient, encouraging, and professional!"
+        "When recommending models, provide: model name and link, parameter count, purpose, hardware requirements, downloads, pros, and cons. "
+        "If exact details are unavailable, guide the user on how to find them step-by-step. "
+        "You can help with recommending models, explaining model types, guiding on downloading, and answering common questions."
     )
 
     try:
         genai.configure(api_key=api_key)
-        model_gemini = genai.GenerativeModel('gemini-1.5-flash')
-        task = "general"
-        if "vqa" in message.lower() or "visual question answering" in message.lower():
-            task = "vqa"
-        elif "image captioning" in message.lower():
-            task = "image_captioning"
-        elif "1b" in message.lower() or "1 billion" in message.lower():
-            task = "low_compute_1b"
-        elif "visual language" in message.lower() or "visual luange" in message.lower():
-            task = "visual_language"
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
-        recommendation = get_model_recommendations(task)
-        enhanced_prompt = f"{message}\n\nIf applicable, include this recommendation in your response: {recommendation}"
+        # Use task_type from request, fall back to message analysis
+        task = request.task_type.lower()
+        if task == "general":
+            if "vqa" in message.lower() or "visual question answering" in message.lower():
+                task = "vqa"
+            elif "image captioning" in message.lower():
+                task = "image_captioning"
+            elif "visual language" in message.lower() or "visual luange" in message.lower():
+                task = "visual_language"
 
-        logger.info(f"Sending request to Gemini with prompt: {enhanced_prompt}")
-        response = model_gemini.generate_content([
-            {"role": "user", "parts": [
-                {"text": f"{system_prompt}\n\n{enhanced_prompt}"}
-            ]}
-        ])
-        answer = response.text
+        if "what is a vision-language model" in message.lower():
+            response = (
+                "A vision-language model (VLM) is a type of machine learning model that can process both images and text together. Here’s a simple explanation:\n"
+                "- **Purpose**: Used for tasks like describing images, answering questions about images, or classifying images based on text.\n"
+                "- **Examples of Tasks**:\n"
+                "  1. **Image Captioning**: 'A red car parked on a street'.\n"
+                "  2. **Visual Question Answering (VQA)**: 'What color is the car?' → 'Red'.\n"
+                "  3. **Damage Assessment**: 'The car has a minor scratch on the hood'.\n"
+                "- **How It Works**: Combines vision and language processing.\n"
+                "Would you like to know more?"
+            )
+        elif "how do i fine-tune a vlm" in message.lower():
+            response = (
+                "Fine-tuning a vision-language model (VLM) involves training it on your specific dataset. Here’s how:\n"
+                "1. **Choose a Model**: e.g., 'Salesforce/blip-image-captioning-base'.\n"
+                "2. **Prepare Your Dataset**: Collect image-text pairs.\n"
+                "3. **Set Up Environment**: GPU with 4GB+, install PyTorch and Transformers.\n"
+                "4. **Load Model and Data**: Use Hugging Face `transformers`.\n"
+                "5. **Fine-Tune**: Train with appropriate settings.\n"
+                "6. **Evaluate and Save**: Test and save the model.\n"
+                "Need specific model recommendations?"
+            )
+        else:
+            recommendation = get_model_recommendations(task, request)
+            enhanced_prompt = f"{message}\n\nIf applicable, include this recommendation: {recommendation}"
+            logger.info(f"Sending request to Gemini with prompt: {enhanced_prompt}")
+            response = model.generate_content([
+                {"role": "user", "parts": [{"text": f"{system_prompt}\n\n{enhanced_prompt}"}]}
+            ])
+            response = response.text
 
-        return {"response": answer}
+        return {"response": response}
     except Exception as e:
         logger.error(f"Error in chatbot endpoint: {str(e)}")
         if "rate limit" in str(e).lower():
-            raise HTTPException(status_code=429, detail="API rate limit exceeded. Please try again later.")
+            raise HTTPException(status_code=429, detail="API rate limit exceeded.")
         elif "authentication" in str(e).lower() or "invalid api key" in str(e).lower():
-            raise HTTPException(status_code=401, detail="Invalid API key. Please check your API key and try again.")
+            raise HTTPException(status_code=401, detail="Invalid API key.")
         else:
-            raise HTTPException(status_code=500, detail=f"Error processing chatbot request: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

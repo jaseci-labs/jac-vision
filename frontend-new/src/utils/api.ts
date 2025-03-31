@@ -356,11 +356,23 @@ export const clearData = async (): Promise<ClearDataResponse> => {
 
 
 
-export const sendChatbotMessage = async (message: string, apiKey: string, apiType: string) => {
+export const sendChatbotMessage = async (
+  message: string,
+  apiKey: string,
+  taskType: string,
+  paramRangeMin: number,
+  paramRangeMax: number,
+  hardwareGpuMemory: number | null,
+  preference: string | null
+) => {
   const response = await axios.post(`${API_URL}/chatbot`, {
     message,
     api_key: apiKey,
-    api_type: apiType,
+    task_type: taskType,
+    param_range_min: paramRangeMin,
+    param_range_max: paramRangeMax,
+    hardware_gpu_memory: hardwareGpuMemory, // Should be a number or null
+    preference, // Should be a string or null
   });
   return response.data;
 };
