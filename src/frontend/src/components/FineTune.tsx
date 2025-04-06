@@ -132,50 +132,65 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, textAlign: { xs: 'center', sm: 'left' } }}>
         Fine-Tune a Model
       </Typography>
-      <Box sx={{ mb: 3 }}>
-        <Select
-          options={modelOptions}
-          onChange={(option) => setSelectedModel(option?.value || null)}
-          placeholder="Select a model"
-          styles={customStyles}
-          value={modelOptions.find((option) => option.value === selectedModel)}
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, mb: 3 }}>
+        <Box sx={{ flex: 1 }}>
+          <Select
+            options={modelOptions}
+            onChange={(option) => setSelectedModel(option?.value || null)}
+            placeholder="Select a model"
+            value={modelOptions.find((option) => option.value === selectedModel)}
+            styles={{
+              ...customStyles,
+              control: (base, state) => ({
+                ...base,
+                height: '56px',
+                minHeight: '56px',
+                borderColor: state.isFocused ? '#5B21B6' : '#4B5563',
+                boxShadow: 'none',
+                '&:hover': {
+                  borderColor: '#5B21B6',
+                },
+                backgroundColor: 'transparent',
+                color: '#E2E8F0',
+              }),
+              singleValue: (base) => ({
+                ...base,
+                color: '#E2E8F0',
+              }),
+              placeholder: (base) => ({
+                ...base,
+                color: '#9CA3AF',
+              }),
+            }}
+          />
+        </Box>
+
+        <TextField
+          label="Dataset Link (e.g., Hugging Face dataset)"
+          value={datasetLink}
+          onChange={(e) => setDatasetLink(e.target.value)}
+          variant="outlined"
+          fullWidth
+          sx={{
+            flex: 1,
+            '& .MuiOutlinedInput-root': {
+              height: '56px',
+              '& fieldset': { borderColor: '#4B5563' },
+              '&:hover fieldset': { borderColor: '#5B21B6' },
+              '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
+            },
+            '& .MuiInputLabel-root': { color: '#9CA3AF' },
+            '& .MuiInputBase-input': { color: '#E2E8F0' },
+          }}
         />
       </Box>
-      <TextField
-        label="Dataset Link (e.g., Hugging Face dataset)"
-        value={datasetLink}
-        onChange={(e) => setDatasetLink(e.target.value)}
-        onKeyPress={handleKeyPress}
-        fullWidth
-        margin="normal"
-        variant="outlined"
-        sx={{
-          mb: 2,
-          '& .MuiOutlinedInput-root': {
-            '& fieldset': {
-              borderColor: '#4B5563',
-            },
-            '&:hover fieldset': {
-              borderColor: '#5B21B6',
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: '#5B21B6',
-            },
-          },
-          '& .MuiInputLabel-root': {
-            color: '#9CA3AF',
-          },
-          '& .MuiInputBase-input': {
-            color: '#E2E8F0',
-          },
-        }}
-      />
+
       <Button
         variant="contained"
         onClick={handleFinetune}
         disabled={fineTuneLoading}
         sx={{
-          mb: 2,
+          mb: 1,
           backgroundColor: '#5B21B6',
           '&:hover': {
             backgroundColor: '#8B5CF6',
@@ -199,51 +214,6 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         <Typography variant="body1" sx={{ mt: 2, color: '#E2E8F0', textAlign: 'center' }}>
           {fineTuneStatus}
         </Typography>
-      )}
-      {modelOptions.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Typography variant="body1" sx={{ color: '#E2E8F0', mb: 2, textAlign: { xs: 'center', sm: 'left' } }}>
-            Available Models:
-          </Typography>
-          <TableContainer component={Paper} sx={{ backgroundColor: '#1E293B', overflowX: 'auto' }}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ color: '#E2E8F0', fontWeight: 600 }}>Model Name</TableCell>
-                  <TableCell sx={{ color: '#E2E8F0', fontWeight: 600 }}>Action</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {modelOptions.map((option) => (
-                  <TableRow key={option.value}>
-                    <TableCell sx={{ color: '#E2E8F0' }}>{option.label}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={() => handleDelete(option.value)}
-                        disabled={deleteLoading[option.value]}
-                        sx={{
-                          borderColor: '#EF4444',
-                          color: '#EF4444',
-                          '&:hover': {
-                            borderColor: '#DC2626',
-                            color: '#DC2626',
-                          },
-                          borderRadius: '8px',
-                          textTransform: 'none',
-                          fontWeight: 500,
-                        }}
-                      >
-                        {deleteLoading[option.value] ? <CircularProgress size={20} /> : 'Delete'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
       )}
     </Box>
   );

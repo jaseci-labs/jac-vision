@@ -204,7 +204,7 @@ const App: React.FC = () => {
         <main
           className="content"
           style={{
-            marginLeft: isMobile ? 0 : (drawerOpen ? 240 : 60),
+            // marginLeft: isMobile ? 0 : (drawerOpen ? 240 : 60),
             transition: 'margin-left 0.3s',
             paddingTop: '80px',
           }}
