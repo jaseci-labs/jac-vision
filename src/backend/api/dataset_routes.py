@@ -7,7 +7,7 @@ from io import BytesIO
 from fastapi import APIRouter, File, HTTPException, UploadFile, logger
 from fastapi.responses import StreamingResponse
 
-from backend.api.models import *
+from backend.schemas.models import *
 
 router = APIRouter()
 

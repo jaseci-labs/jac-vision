@@ -14,7 +14,7 @@ from services.training import (
     trained_models,
 )
 
-from backend.api.models import *
+from backend.schemas.models import *
 
 router = APIRouter()
 
