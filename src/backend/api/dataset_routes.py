@@ -1,15 +1,18 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, logger
-from fastapi.responses import StreamingResponse
-from backend.api.models import *
+import json
 import os
+import shutil
 import zipfile
 from io import BytesIO
-import json
-import shutil
+
+from fastapi import APIRouter, File, HTTPException, UploadFile, logger
+from fastapi.responses import StreamingResponse
+
+from backend.api.models import *
 
 router = APIRouter()
 
 json_file_path = "car_damage_data.json"
+
 
 def load_existing_data():
     if os.path.exists(json_file_path):
@@ -18,18 +21,22 @@ def load_existing_data():
                 content = file.read().strip()
                 return json.loads(content) if content else []
         except json.JSONDecodeError:
-            logger.warning(f"Invalid JSON in {json_file_path}. Starting with an empty list.")
+            logger.warning(
+                f"Invalid JSON in {json_file_path}. Starting with an empty list."
+            )
             return []
     return []
+
 
 def save_json(data):
     with open(json_file_path, "w") as json_file:
         json.dump(data, json_file, indent=4)
     logger.info(f"JSON updated at {json_file_path}")
 
+
 @router.post("/upload-image-folder")
 async def upload_image_folder(file: UploadFile = File(...)):
-    if not file.filename.endswith('.zip'):
+    if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="File must be a ZIP file")
     upload_dir = "CarData"
     if os.path.exists(upload_dir):
@@ -50,6 +57,7 @@ async def upload_image_folder(file: UploadFile = File(...)):
         os.remove(zip_path)
     return {"message": "Image folder uploaded successfully"}
 
+
 @router.get("/get-next-image")
 async def save_caption(request: CaptionRequest):
     caption = request.caption
@@ -60,6 +68,7 @@ async def save_caption(request: CaptionRequest):
     save_json(existing_data)
 
     return {"message": "Caption saved successfully"}
+
 
 @router.post("/save-caption")
 async def save_caption(request: CaptionRequest):
@@ -72,6 +81,7 @@ async def save_caption(request: CaptionRequest):
         json.dump(existing_data, f)
     return {"message": "Caption saved successfully"}
 
+
 @router.get("/download-dataset")
 async def download_dataset():
     buffer = BytesIO()
@@ -82,4 +92,8 @@ async def download_dataset():
             for file in files:
                 zip_file.write(os.path.join(root, file))
     buffer.seek(0)
-    return StreamingResponse(buffer, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=dataset.zip"})
+    return StreamingResponse(
+        buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=dataset.zip"},
+    )
