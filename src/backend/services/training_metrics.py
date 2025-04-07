@@ -1,16 +1,19 @@
 import torch
 
+
 def print_training_summary(trainer):
     # Get initial GPU memory usage
     start_gpu_memory = round(torch.cuda.memory_allocated() / 1024 / 1024 / 1024, 3)
-    max_memory = round(torch.cuda.get_device_properties(0).total_memory / 1024 / 1024 / 1024, 3)
+    max_memory = round(
+        torch.cuda.get_device_properties(0).total_memory / 1024 / 1024 / 1024, 3
+    )
 
     used_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
     used_memory_for_lora = round(used_memory - start_gpu_memory, 3)
     used_percentage = round(used_memory / max_memory * 100, 3)
     lora_percentage = round(used_memory_for_lora / max_memory * 100, 3)
 
-    runtime_seconds = trainer.state.log_history[-1]['train_runtime']
+    runtime_seconds = trainer.state.log_history[-1]["train_runtime"]
     runtime_minutes = round(runtime_seconds / 60, 2)
 
     print(f"TRAINING SUMMARY")

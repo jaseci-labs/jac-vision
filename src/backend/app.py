@@ -1,26 +1,31 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
-from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
+import base64
+import json
+import logging
 import os
-from PIL import Image
+import shutil
+import sqlite3
+import zipfile  # Added for ZIP file creation
+from datetime import datetime
+from io import BytesIO
+from typing import List, Optional
+
+import google.generativeai as genai
+import openai
 import psutil
 import requests
-import logging
-import google.generativeai as genai
-import base64
-from io import BytesIO
-import sqlite3
-from datetime import datetime
-import shutil
-import openai
-from transformers import AutoModelForCausalLM, AutoProcessor, Qwen2VLForConditionalGeneration, Qwen2ForCausalLM
 import torch
-from huggingface_hub import snapshot_download, HfApi
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from huggingface_hub import HfApi, snapshot_download
+from PIL import Image
 from pydantic import BaseModel, Field
-import json
-from typing import Optional, List
-import zipfile  # Added for ZIP file creation
-import google.generativeai as genai
+from transformers import (
+    AutoModelForCausalLM,
+    AutoProcessor,
+    Qwen2ForCausalLM,
+    Qwen2VLForConditionalGeneration,
+)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -764,7 +769,7 @@ class ChatbotRequest(BaseModel):
     param_range_max: float = 7.0
     hardware_gpu_memory: Optional[float] = None  # Explicitly allow None
     preference: Optional[str] = None
-    
+
 
 # Existing search_huggingface_models function (unchanged)
 def search_huggingface_models(query: str, tags: list = [], param_range_min: float = 3.0, param_range_max: float = 7.0, hardware_gpu_memory: float = None, preference: str = None, limit: int = 5) -> list:

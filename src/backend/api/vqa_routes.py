@@ -1,7 +1,13 @@
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from services.vqa_service import clear_history, delete_history_entry, get_history, process_vqa
+from services.vqa_service import (
+    clear_history,
+    delete_history_entry,
+    get_history,
+    process_vqa,
+)
 
 router = APIRouter()
+
 
 @router.post("/vqa")
 async def vqa_endpoint(
@@ -17,7 +23,9 @@ async def vqa_endpoint(
     image_content = None
     if image:
         if not image.content_type.startswith("image/"):
-            raise HTTPException(status_code=400, detail="Uploaded file must be an image")
+            raise HTTPException(
+                status_code=400, detail="Uploaded file must be an image"
+            )
         image_content = await image.read()
 
     try:
@@ -26,11 +34,12 @@ async def vqa_endpoint(
             question=question,
             api_key=api_key,
             api_type=api_type,
-            model_name=model
+            model_name=model,
         )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/vqa/history")
 async def get_vqa_history():
@@ -39,12 +48,14 @@ async def get_vqa_history():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.delete("/vqa/history/delete/{history_id}")
 async def delete_history(history_id: int):
     try:
         return delete_history_entry(history_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.delete("/vqa/history/clear")
 async def clear_vqa_history():
