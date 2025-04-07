@@ -1,7 +1,4 @@
-instruction = (
-    "You are an expert radiographer. Describe accurately what you see in this image."
-)
-
+instruction = "You are an expert radiographer. Describe accurately what you see in this image."
 
 def convert_to_conversation(sample):
     return {

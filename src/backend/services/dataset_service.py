@@ -7,8 +7,9 @@ from io import BytesIO
 
 import google.generativeai as genai
 import requests
-from api.models import *
+from backend.schemas.models import *
 from fastapi import HTTPException, logger
+from utils.image_utils import encode_image
 
 MAX_RETRIES = 3
 SITE_URL = "<YOUR_SITE_URL>"
@@ -30,12 +31,6 @@ def load_existing_data():
             )
             return []
     return []
-
-
-def encode_image(image_path: str) -> str:
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode("utf-8")
-
 
 def process_image(
     image_path: str,
