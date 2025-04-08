@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000';
-const RUNPOD_API_URL = 'https://njkpjce80glq9v-4000.proxy.runpod.net';
 
 // Define TypeScript interfaces for API responses
 export interface Model {
@@ -152,7 +151,7 @@ export const performVqa = async (
 // Fetch list of downloaded models
 export const fetchModels = async (): Promise<ModelsResponse> => {
   try {
-    const response = await axios.get(`${RUNPOD_API_URL}/models`);
+    const response = await axios.get(`${API_URL}/models`);
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -269,7 +268,7 @@ export const fetchSystemInfo = async (): Promise<SystemInfoResponse> => {
 // Fine-tune a model
 export const finetuneModel = async (model_name: string, dataset_path: string, app_name: string): Promise<FineTuneResponse> => {
   try {
-    const response = await axios.post(`${RUNPOD_API_URL}/start-finetuning`, { model_name, dataset_path, app_name });
+    const response = await axios.post(`${API_URL}/start-finetuning`, { model_name, dataset_path, app_name });
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -356,7 +355,7 @@ export const clearData = async (): Promise<ClearDataResponse> => {
 
 export const getTaskStatus = async (taskId: string) => {
   try {
-    const response = await fetch(`${RUNPOD_API_URL}/status/${taskId}`);
+    const response = await fetch(`${API_URL}/status/${taskId}`);
     if (!response.ok) {
       throw new Error('Failed to fetch task status');
     }

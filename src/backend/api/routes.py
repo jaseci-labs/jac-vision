@@ -1,9 +1,8 @@
 import json
-import shutil
 import time
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
 from services.save import save_gguf_model, save_model
 from services.training import (
@@ -14,7 +13,7 @@ from services.training import (
     trained_models,
 )
 
-from backend.schemas.models import *
+from schemas.models import *
 
 router = APIRouter()
 

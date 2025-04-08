@@ -5,7 +5,7 @@ import requests
 from fastapi import APIRouter, HTTPException, logger
 from huggingface_hub import HfApi, snapshot_download
 
-from backend.schemas.models import *
+from schemas.models import *
 
 router = APIRouter()
 

@@ -7,7 +7,7 @@ from io import BytesIO
 
 import google.generativeai as genai
 import requests
-from backend.schemas.models import *
+from schemas.models import *
 from fastapi import HTTPException, logger
 from utils.image_utils import encode_image
 
