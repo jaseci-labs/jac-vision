@@ -205,7 +205,7 @@ export const testApiKey = async (apiKey: string, apiType: 'gemini' | 'openai'): 
   formData.append('api_type', apiType);
   formData.append('question', 'Test question');
   try {
-    const response = await axios.post(`${API_URL}/vqa`, formData, {
+    const response = await axios.post(`${API_URL}/api/vqa/vqa`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
