@@ -151,7 +151,7 @@ export const performVqa = async (
 // Fetch list of downloaded models
 export const fetchModels = async (): Promise<ModelsResponse> => {
   try {
-    const response = await axios.get(`${API_URL}/api/models/models`);
+    const response = await axios.get(`${API_URL}/api/finetune/models`);
     return response.data;
   } catch (error) {
     return handleApiError(error);
