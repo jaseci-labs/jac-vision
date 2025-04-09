@@ -5,15 +5,15 @@ import zipfile
 from io import BytesIO
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, logger
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 
-from backend.services.dataset_service import get_all_images, process_image
+from services.dataset_service import get_all_images, process_image
 from schemas.models import *
 
 router = APIRouter()
 
 json_file_path = "car_damage_data.json"
-
+root_folder = "CarDataset"
 
 def load_existing_data():
     if os.path.exists(json_file_path):
@@ -100,3 +100,10 @@ async def download_dataset():
         media_type="application/zip",
         headers={"Content-Disposition": "attachment; filename=dataset.zip"},
     )
+
+@router.get("/images/{filename:path}")
+async def serve_image(filename: str):
+    file_path = os.path.join(root_folder, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(file_path)
