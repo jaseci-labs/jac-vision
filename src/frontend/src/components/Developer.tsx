@@ -41,7 +41,7 @@ const Developer: React.FC<DeveloperProps> = ({ themeMode }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.get(`${API_URL}/system-info`);
+      const response = await axios.get(`${API_URL}/api/system/system-info`);
       const data: SystemInfo = response.data;
       setSystemInfo(data);
 
