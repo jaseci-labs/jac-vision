@@ -7,6 +7,7 @@ from io import BytesIO
 from fastapi import APIRouter, File, HTTPException, UploadFile, logger
 from fastapi.responses import StreamingResponse
 
+from backend.services.dataset_service import get_all_images, process_image
 from schemas.models import *
 
 router = APIRouter()
@@ -38,7 +39,7 @@ def save_json(data):
 async def upload_image_folder(file: UploadFile = File(...)):
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="File must be a ZIP file")
-    upload_dir = "CarData"
+    upload_dir = "CarDataset"
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
     os.makedirs(upload_dir)
@@ -59,15 +60,17 @@ async def upload_image_folder(file: UploadFile = File(...)):
 
 
 @router.get("/get-next-image")
-async def save_caption(request: CaptionRequest):
-    caption = request.caption
-    image_path = request.image_path
-
-    existing_data = load_existing_data()
-    existing_data.append({"image": image_path, "caption": caption})
-    save_json(existing_data)
-
-    return {"message": "Caption saved successfully"}
+async def get_next_image(api_key: str = "", api_type: str = "openrouter", model: str = "google/gemma-3-12b-it:free"):
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key is required")
+    image_files = get_all_images()
+    if not image_files:
+        return {"done": True, "message": "All images have been processed!"}
+    image_path, relative_path = image_files[0]
+    image_data = process_image(image_path, relative_path, api_key, api_type, model)
+    if image_data:
+        return {"image_path": relative_path, "caption": image_data.caption, "total": len(image_files)}
+    raise HTTPException(status_code=500, detail="Failed to process image")
 
 
 @router.post("/save-caption")
@@ -88,7 +91,7 @@ async def download_dataset():
     with zipfile.ZipFile(buffer, "w") as zip_file:
         if os.path.exists("car_damage_data.json"):
             zip_file.write("car_damage_data.json")
-        for root, _, files in os.walk("CarData"):
+        for root, _, files in os.walk("CarDataset"):
             for file in files:
                 zip_file.write(os.path.join(root, file))
     buffer.seek(0)
