@@ -2,7 +2,7 @@
 
 ```markdown
 backend/                         
-├── api/                         # API endpoint handlers
+├── api/
 │   ├── dataset_routes.py        # Handles dataset upload/download endpoints
 │   ├── model_routes.py          # Manages model download/delete/search endpoints  
 │   ├── routes.py                # Core fine-tuning API endpoints
@@ -17,7 +17,7 @@ backend/
 ├── schemas/                     
 │   └── models.py                # Models for request/response validation
 │
-├── services/                    
+├── services/
 │   ├── chatbot_service.py       # AI chatbot recommendation engine
 │   ├── dataset_service.py       # Dataset processing/management logic
 │   ├── inference.py             # Model inference/prediction service
@@ -27,13 +27,13 @@ backend/
 │   ├── training_metrics.py      # Training performance tracking
 │   └── vqa_service.py           # Visual QA processing backend
 │
-├── utils/                       
+├── utils/
 │   ├── config_loader.py         # Loads training configurations
 │   ├── dataset_utils.py         # Dataset conversion/formatting tools
 │   └── image_utils.py           # Image processing/encoding helpers
 │
-├── main.py                      
-├── README.md                    
-├── requirements.txt             
+├── main.py
+├── README.md
+├── requirements.txt
 └── vqa_history.db               # Database for VQA interaction history
 ```
