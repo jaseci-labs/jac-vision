@@ -6,14 +6,14 @@ from io import BytesIO
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, logger
 from fastapi.responses import FileResponse, StreamingResponse
-
+from schemas.models import CaptionRequest
 from services.dataset_service import get_all_images, load_existing_data, process_image
-from schemas.models import *
 
 router = APIRouter()
 
 json_file_path = "jsons/car_damage_data.json"
 root_folder = "datasets/CarDataset"
+
 
 def save_json(data):
     with open(json_file_path, "w") as json_file:
@@ -47,7 +47,11 @@ async def upload_image_folder(file: UploadFile = File(...)):
 
 
 @router.get("/get-next-image")
-async def get_next_image(api_key: str = "", api_type: str = "openrouter", model: str = "google/gemma-3-12b-it:free"):
+async def get_next_image(
+    api_key: str = "",
+    api_type: str = "openrouter",
+    model: str = "google/gemma-3-12b-it:free",
+):
     if not api_key:
         raise HTTPException(status_code=400, detail="API key is required")
     image_files = get_all_images()
@@ -56,7 +60,11 @@ async def get_next_image(api_key: str = "", api_type: str = "openrouter", model:
     image_path, relative_path = image_files[0]
     image_data = process_image(image_path, relative_path, api_key, api_type, model)
     if image_data:
-        return {"image_path": relative_path, "caption": image_data.caption, "total": len(image_files)}
+        return {
+            "image_path": relative_path,
+            "caption": image_data.caption,
+            "total": len(image_files),
+        }
     raise HTTPException(status_code=500, detail="Failed to process image")
 
 
@@ -88,15 +96,15 @@ async def download_dataset():
         headers={"Content-Disposition": "attachment; filename=dataset.zip"},
     )
 
+
 @router.get("/download-json")
 async def download_json():
     if not os.path.exists(json_file_path):
         raise HTTPException(status_code=404, detail="JSON file not found")
     return FileResponse(
-        path=json_file_path,
-        filename=json_file_path,
-        media_type="application/json"
+        path=json_file_path, filename=json_file_path, media_type="application/json"
     )
+
 
 @router.get("/images/{filename:path}")
 async def serve_image(filename: str):
@@ -105,9 +113,11 @@ async def serve_image(filename: str):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(file_path)
 
+
 @router.get("/get-json")
 async def get_json():
     return {"data": load_existing_data()}
+
 
 @router.delete("/clear-data")
 async def clear_data():

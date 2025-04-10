@@ -1,5 +1,6 @@
 instruction = "You are an expert damage assessment analyzer. Describe accurately what you see in this image."
 
+
 def convert_to_conversation(sample):
     return {
         "messages": [

@@ -4,11 +4,12 @@ import os
 import shutil
 import zipfile
 from io import BytesIO
+from typing import Optional
 
 import google.generativeai as genai
 import requests
-from schemas.models import *
 from fastapi import HTTPException, logger
+from schemas.models import CaptionResponse
 from utils.image_utils import encode_image
 
 MAX_RETRIES = 3
@@ -31,6 +32,7 @@ def load_existing_data():
             )
             return []
     return []
+
 
 def process_image(
     image_path: str,
@@ -163,4 +165,3 @@ def get_all_images():
                 if relative_path not in existing_paths:
                     image_files.append((image_path, relative_path))
     return image_files
-

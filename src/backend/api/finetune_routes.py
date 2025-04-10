@@ -4,6 +4,12 @@ import uuid
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
+from schemas.models import (
+    FineTuningRequest,
+    GGUFSaveRequest,
+    GoalTrainingRequest,
+    SaveModelRequest,
+)
 from services.save import save_gguf_model, save_model
 from services.training import (
     AVAILABLE_MODELS,
@@ -12,8 +18,6 @@ from services.training import (
     train_model_with_goal,
     trained_models,
 )
-
-from schemas.models import *
 
 router = APIRouter()
 
