@@ -15,7 +15,7 @@ MAX_RETRIES = 3
 SITE_URL = "<YOUR_SITE_URL>"
 SITE_NAME = "<YOUR_SITE_NAME>"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-root_folder = "CarDataset"
+root_folder = "dataset/CarDataset"
 json_file_path = "car_damage_data.json"
 
 
@@ -168,7 +168,7 @@ def get_all_images():
 def upload_image_folder(file):
     if not file.filename.endswith(".zip"):
         raise ValueError("Not a ZIP file")
-    upload_dir = "CarDataset"
+    upload_dir = "dataset/CarDataset"
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
     os.makedirs(upload_dir)
@@ -225,7 +225,7 @@ def download_dataset():
     with zipfile.ZipFile(buffer, "w") as zip_file:
         if os.path.exists("car_damage_data.json"):
             zip_file.write("car_damage_data.json")
-        for root, _, files in os.walk("CarDataset"):
+        for root, _, files in os.walk("dataset/CarDataset"):
             for file in files:
                 zip_file.write(os.path.join(root, file))
     buffer.seek(0)

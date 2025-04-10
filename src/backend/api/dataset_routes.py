@@ -13,7 +13,7 @@ from schemas.models import *
 router = APIRouter()
 
 json_file_path = "car_damage_data.json"
-root_folder = "CarDataset"
+root_folder = "dataset/CarDataset"
 
 def save_json(data):
     with open(json_file_path, "w") as json_file:
@@ -25,7 +25,7 @@ def save_json(data):
 async def upload_image_folder(file: UploadFile = File(...)):
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="File must be a ZIP file")
-    upload_dir = "CarDataset"
+    upload_dir = "dataset/CarDataset"
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
     os.makedirs(upload_dir)
@@ -77,7 +77,7 @@ async def download_dataset():
     with zipfile.ZipFile(buffer, "w") as zip_file:
         if os.path.exists("car_damage_data.json"):
             zip_file.write("car_damage_data.json")
-        for root, _, files in os.walk("CarDataset"):
+        for root, _, files in os.walk("dataset/CarDataset"):
             for file in files:
                 zip_file.write(os.path.join(root, file))
     buffer.seek(0)
