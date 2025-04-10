@@ -17,6 +17,7 @@ from unsloth import FastVisionModel, is_bf16_supported
 from unsloth.trainer import UnslothVisionDataCollator
 from utils.config_loader import load_model_config
 from utils.dataset_utils import get_custom_dataset
+from sklearn.model_selection import train_test_split
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
 os.environ["UNSLOTH_RETURN_LOGITS"] = "1"
@@ -109,11 +110,18 @@ def train_model(model_name: str, task_id: str):
         print("[MODEL INIT] Model and tokenizer loaded successfully.")
         FastVisionModel.for_training(model)
 
+        train_size = int(0.8 * len(converted_dataset))
+        eval_size = len(converted_dataset) - train_size
+        train_dataset, eval_dataset = converted_dataset.train_test_split(
+            train_size=train_size, test_size=eval_size
+        ).values()
+
         trainer = SFTTrainer(
             model=model,
             tokenizer=tokenizer,
             data_collator=UnslothVisionDataCollator(model, tokenizer),
-            train_dataset=converted_dataset,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
             compute_metrics=compute_metrics,
             args=SFTConfig(
                 per_device_train_batch_size=2,
