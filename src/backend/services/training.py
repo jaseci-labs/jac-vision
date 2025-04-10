@@ -1,7 +1,7 @@
 from unsloth import FastVisionModel, is_bf16_supported
 from unsloth.trainer import UnslothVisionDataCollator
 from unsloth.chat_templates import convert_conversations_to_text
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 import traceback
 import os
 import json
@@ -12,6 +12,7 @@ from trl import SFTConfig, SFTTrainer
 from utils.config_loader import load_model_config
 from utils.dataset_utils import convert_to_conversation
 from services.training_metrics import print_training_summary
+from PIL import Image
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
 
@@ -31,18 +32,20 @@ def get_custom_dataset(json_file_path, root_folder):
     with open(json_file_path, "r") as f:
         data = json.load(f)
 
-    custom_dataset = []
+    samples = []
     for sample in data:
-        full_path = os.path.join(root_folder, sample["image"])
-        if os.path.exists(full_path):
-            custom_dataset.append(convert_to_conversation({
-                "image": full_path,
-                "caption": sample["caption"]
-            }, is_custom=True))
-        else:
-            print(f"[WARNING] Image not found: {full_path}")
-    return custom_dataset
+        image_path = os.path.join(root_folder, sample["image"])
+        if not os.path.exists(image_path):
+            print(f"[WARNING] Image not found: {image_path}")
+            continue
+        image = Image.open(image_path).convert("RGB")
+        converted = convert_to_conversation({
+            "image": image,
+            "caption": sample["caption"]
+        }, is_custom=True)
+        samples.append(converted)
 
+    return Dataset.from_list(samples)
 
 class ProgressCallback(TrainerCallback):
     def __init__(self, task_id: str, total_steps: int):
@@ -55,33 +58,39 @@ class ProgressCallback(TrainerCallback):
             "status": "RUNNING",
             "progress": progress,
             "loss": state.log_history[-1].get("loss") if state.log_history else None,
-            "learning_rate": (
-                state.log_history[-1].get("learning_rate")
-                if state.log_history else None
-            ),
+            "learning_rate": state.log_history[-1].get("learning_rate") if state.log_history else None,
             "epoch": state.epoch,
             "error": None,
         }
 
     def on_train_begin(self, args, state, control, **kwargs):
         task_status[self.task_id] = {
-            "status": "RUNNING", "progress": 0, "loss": None, "learning_rate": None, "epoch": 0, "error": None
+            "status": "RUNNING",
+            "progress": 0,
+            "loss": None,
+            "learning_rate": None,
+            "epoch": 0,
+            "error": None,
         }
 
     def on_train_end(self, args, state, control, **kwargs):
         task_status[self.task_id].update({"status": "COMPLETED", "progress": 100})
-
 
 def train_model(model_name: str, task_id: str):
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
 
     task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
+
     try:
-        # Prepare model
+        print(f"[DATASET] Loading custom dataset from {json_file_path}")
+        train_dataset = get_custom_dataset(json_file_path, root_folder)
+
+        print("[MODEL] Loading model...")
         model, tokenizer = FastVisionModel.from_pretrained(
             model_name, load_in_4bit=True, use_gradient_checkpointing="unsloth"
         )
+
         model = FastVisionModel.get_peft_model(
             model,
             finetune_vision_layers=False,
@@ -94,17 +103,14 @@ def train_model(model_name: str, task_id: str):
             bias="none",
             random_state=3407,
         )
-        FastVisionModel.for_training(model)
 
-        # Load and convert dataset
-        raw_dataset = get_custom_dataset(json_file_path, root_folder)
-        tokenized_dataset = convert_conversations_to_text(raw_dataset, tokenizer)
+        FastVisionModel.for_training(model)
 
         trainer = SFTTrainer(
             model=model,
             tokenizer=tokenizer,
-            train_dataset=tokenized_dataset,
             data_collator=UnslothVisionDataCollator(model, tokenizer),
+            train_dataset=train_dataset,
             args=SFTConfig(
                 per_device_train_batch_size=2,
                 gradient_accumulation_steps=4,
@@ -127,14 +133,14 @@ def train_model(model_name: str, task_id: str):
         trainer.train()
 
         stats = print_training_summary(trainer)
-        task_status[task_id] = {
-            "status": "COMPLETED", "progress": 100, "error": None, "metrics": stats
-        }
+
+        task_status[task_id] = {"status": "COMPLETED", "progress": 100, "error": None, "metrics": stats}
         trained_models[task_id] = (model, tokenizer)
 
     except Exception as e:
-        task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}
+        print("[ERROR] Training failed:")
         traceback.print_exc()
+        task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}
 
 def train_model_with_goal(task_id: str, model_name: str, dataset_id: str, goal_type: str, target: str):
     if model_name not in AVAILABLE_MODELS:
