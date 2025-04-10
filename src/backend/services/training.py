@@ -37,7 +37,6 @@ def get_custom_dataset(json_file_path, root_folder):
                 "image": full_path,
                 "caption": sample["caption"]
             }, is_custom=True))
-            print(custom_dataset)
         else:
             print(f"[WARNING] Image not found: {full_path}")
     return custom_dataset
@@ -88,6 +87,7 @@ def train_model(model_name: str, task_id: str):
 
     task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
     train_dataset = get_custom_dataset(json_file_path, root_folder)
+    print(train_dataset)
     try:
         model, tokenizer = FastVisionModel.from_pretrained(
             model_name, load_in_4bit=True, use_gradient_checkpointing="unsloth"
