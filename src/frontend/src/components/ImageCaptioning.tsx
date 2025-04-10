@@ -9,6 +9,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
+import { API_URL } from '../utils/api';
 
 interface ImageCaptioningProps {
   toast: typeof toast;
@@ -494,7 +495,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
           </Typography>
           <Box sx={{ mb: 2, textAlign: 'center' }}>
             <img
-              src={`http://localhost:5000/images/${imageData.image_path}`}
+              src={`${API_URL}/images/${imageData.image_path}`}
               alt="Car Image"
               style={{ maxWidth: '100%', height: 'auto', border: '2px solid #ddd', borderRadius: '4px' }}
             />

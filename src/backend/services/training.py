@@ -165,7 +165,7 @@ def train_model_with_goal(task_id: str, model_name: str, dataset_id: str, goal_t
             args=SFTConfig(
                 per_device_train_batch_size=config["batch_size"],
                 gradient_accumulation_steps=4,
-                max_steps=config["epochs"] * 5,  # Example scaling
+                max_steps=config["epochs"],
                 learning_rate=config["learning_rate"],
                 fp16=not is_bf16_supported() if config["mixed_precision"] else False,
                 bf16=is_bf16_supported() if config["mixed_precision"] else False,
