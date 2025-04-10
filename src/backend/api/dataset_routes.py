@@ -25,6 +25,7 @@ def save_json(data):
 async def upload_image_folder(file: UploadFile = File(...)):
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="File must be a ZIP file")
+
     upload_dir = "datasets/CarDataset"
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
