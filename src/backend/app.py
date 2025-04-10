@@ -66,8 +66,8 @@ def init_db():
 init_db()
 
 # Configuration for image captioning
-root_folder = "dataset/CarDataset"
-json_file_path = "car_damage_data.json"
+root_folder = "datasets/CarDataset"
+json_file_path = "jsons/car_damage_data.json"
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")  # Load from environment variable
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 SITE_URL = "<YOUR_SITE_URL>"
@@ -77,7 +77,7 @@ MAX_RETRIES = 3
 RETRY_DELAY = 10
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB limit for uploads
 
-# Ensure the dataset/CarDataset folder exists
+# Ensure the datasets/CarDataset folder exists
 if not os.path.exists(root_folder):
     os.makedirs(root_folder)
 
@@ -633,7 +633,7 @@ async def upload_image_folder(file: UploadFile = File(...)):
         logger.error(f"File size {file.size} exceeds maximum limit of {MAX_FILE_SIZE} bytes")
         raise HTTPException(status_code=400, detail=f"File size exceeds maximum limit of {MAX_FILE_SIZE / (1024 * 1024)} MB")
     logger.debug(f"Received file: {file.filename}, Content-Type: {file.content_type}, Size: {file.size}")
-    upload_dir = "dataset/CarDataset"
+    upload_dir = "datasets/CarDataset"
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
     os.makedirs(upload_dir)
@@ -698,7 +698,7 @@ async def save_caption(request: CaptionRequest):
 
     return {"message": "Caption saved successfully"}
 
-# Serve images from the dataset/CarDataset folder
+# Serve images from the datasets/CarDataset folder
 @app.get("/images/{filename:path}")
 async def serve_image(filename: str):
     file_path = os.path.join(root_folder, filename)
@@ -713,7 +713,7 @@ async def download_json():
         raise HTTPException(status_code=404, detail="JSON file not found")
     return FileResponse(
         path=json_file_path,
-        filename="car_damage_data.json",
+        filename="jsons/car_damage_data.json",
         media_type="application/json"
     )
 
@@ -728,7 +728,7 @@ async def download_dataset():
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         # Add the JSON file
-        zip_file.write(json_file_path, "car_damage_data.json")
+        zip_file.write(json_file_path, "jsons/car_damage_data.json")
         # Add all images referenced in the JSON
         for entry in existing_data:
             image_path = os.path.join(root_folder, entry["image"])

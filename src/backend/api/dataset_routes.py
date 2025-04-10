@@ -12,8 +12,8 @@ from schemas.models import *
 
 router = APIRouter()
 
-json_file_path = "car_damage_data.json"
-root_folder = "dataset/CarDataset"
+json_file_path = "jsons/car_damage_data.json"
+root_folder = "datasets/CarDataset"
 
 def save_json(data):
     with open(json_file_path, "w") as json_file:
@@ -25,7 +25,7 @@ def save_json(data):
 async def upload_image_folder(file: UploadFile = File(...)):
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="File must be a ZIP file")
-    upload_dir = "dataset/CarDataset"
+    upload_dir = "datasets/CarDataset"
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
     os.makedirs(upload_dir)
@@ -62,11 +62,11 @@ async def get_next_image(api_key: str = "", api_type: str = "openrouter", model:
 @router.post("/save-caption")
 async def save_caption(request: CaptionRequest):
     existing_data = []
-    if os.path.exists("car_damage_data.json"):
-        with open("car_damage_data.json", "r") as f:
+    if os.path.exists(json_file_path):
+        with open(json_file_path, "r") as f:
             existing_data = json.load(f)
     existing_data.append({"image": request.image_path, "caption": request.caption})
-    with open("car_damage_data.json", "w") as f:
+    with open(json_file_path, "w") as f:
         json.dump(existing_data, f)
     return {"message": "Caption saved successfully"}
 
@@ -75,9 +75,9 @@ async def save_caption(request: CaptionRequest):
 async def download_dataset():
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w") as zip_file:
-        if os.path.exists("car_damage_data.json"):
-            zip_file.write("car_damage_data.json")
-        for root, _, files in os.walk("dataset/CarDataset"):
+        if os.path.exists(json_file_path):
+            zip_file.write(json_file_path)
+        for root, _, files in os.walk("datasets/CarDataset"):
             for file in files:
                 zip_file.write(os.path.join(root, file))
     buffer.seek(0)
@@ -93,7 +93,7 @@ async def download_json():
         raise HTTPException(status_code=404, detail="JSON file not found")
     return FileResponse(
         path=json_file_path,
-        filename="car_damage_data.json",
+        filename=json_file_path,
         media_type="application/json"
     )
 
@@ -107,3 +107,12 @@ async def serve_image(filename: str):
 @router.get("/get-json")
 async def get_json():
     return {"data": load_existing_data()}
+
+@router.delete("/clear-data")
+async def clear_data():
+    if os.path.exists(json_file_path):
+        os.remove(json_file_path)
+    if os.path.exists(root_folder):
+        shutil.rmtree(root_folder)
+        os.makedirs(root_folder)
+    return {"message": "All data cleared successfully"}

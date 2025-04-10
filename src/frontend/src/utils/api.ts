@@ -219,9 +219,9 @@ export const downloadModel = async (model: string, token?: string): Promise<Down
   try {
     console.log('Sending download request:', { model, token });
     const response = await axios.post(
-      `${API_URL}/download-model`,
+      `${API_URL}/api/models/download-model`,
       { model, token },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { "Content-Type": "application/json" } }
     );
     return response.data;
   } catch (error) {
@@ -233,9 +233,9 @@ export const downloadModel = async (model: string, token?: string): Promise<Down
 export const checkModelAccess = async (model: string, token?: string): Promise<CheckModelAccessResponse> => {
   try {
     const response = await axios.post(
-      `${API_URL}/check-model-access`,
+      `${API_URL}/api/models/check-model-access`,
       { model, token },
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { "Content-Type": "application/json" } }
     );
     return response.data;
   } catch (error) {
@@ -336,7 +336,7 @@ export const downloadDataset = async (): Promise<Blob> => {
 // Get the JSON data for preview
 export const getJson = async (): Promise<GetJsonResponse> => {
   try {
-    const response = await axios.get(`${API_URL}/get-json`);
+    const response = await axios.get(`${API_URL}/api/datasets/get-json`);
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -346,7 +346,7 @@ export const getJson = async (): Promise<GetJsonResponse> => {
 // Clear all data
 export const clearData = async (): Promise<ClearDataResponse> => {
   try {
-    const response = await axios.delete(`${API_URL}/clear-data`);
+    const response = await axios.delete(`${API_URL}/api/datasets/clear-data`);
     return response.data;
   } catch (error) {
     return handleApiError(error);
