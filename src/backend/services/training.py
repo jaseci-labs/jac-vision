@@ -5,7 +5,7 @@ import traceback
 from datasets import load_dataset
 from fastapi import HTTPException
 from PIL import Image
-from services.training_metrics import print_training_summary
+from services.training_metrics import print_training_summary, compute_metrics
 from transformers import (
     TrainerCallback,
     TrainerControl,
@@ -16,7 +16,7 @@ from trl import SFTConfig, SFTTrainer
 from unsloth import FastVisionModel, is_bf16_supported
 from unsloth.trainer import UnslothVisionDataCollator
 from utils.config_loader import load_model_config
-from utils.dataset_utils import convert_to_conversation
+from utils.dataset_utils import get_custom_dataset
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
 
@@ -31,28 +31,6 @@ trained_models = {}
 
 json_file_path = "jsons/car_damage_data.json"
 root_folder = "datasets/CarDataset"
-
-
-def get_custom_dataset(json_file_path, root_folder):
-    with open(json_file_path, "r") as f:
-        data = json.load(f)
-
-    custom_dataset = []
-    for sample in data:
-        full_path = os.path.join(root_folder, sample["image"])
-        if os.path.exists(full_path):
-            try:
-                image = Image.open(full_path)
-                custom_dataset.append(
-                    convert_to_conversation(
-                        {"image": image, "caption": sample["caption"]}
-                    )
-                )
-            except Exception as e:
-                print(f"[ERROR] Could not load image {full_path}: {e}")
-        else:
-            print(f"[WARNING] Image not found: {full_path}")
-    return custom_dataset
 
 
 class ProgressCallback(TrainerCallback):
@@ -101,6 +79,7 @@ def train_model(model_name: str, task_id: str):
 
     task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
     converted_dataset = get_custom_dataset(json_file_path, root_folder)
+    print(f"[TRAIN START] Task ID: {task_id}")
 
     try:
         model, tokenizer = FastVisionModel.from_pretrained(
@@ -126,6 +105,7 @@ def train_model(model_name: str, task_id: str):
             # random_state=3407,
         )
 
+        print("[MODEL INIT] Model and tokenizer loaded successfully.")
         FastVisionModel.for_training(model)
 
         trainer = SFTTrainer(
@@ -133,6 +113,7 @@ def train_model(model_name: str, task_id: str):
             tokenizer=tokenizer,
             data_collator=UnslothVisionDataCollator(model, tokenizer),
             train_dataset=converted_dataset,
+            compute_metrics=compute_metrics,
             args=SFTConfig(
                 per_device_train_batch_size=2,
                 gradient_accumulation_steps=4,
@@ -143,25 +124,30 @@ def train_model(model_name: str, task_id: str):
                 bf16=is_bf16_supported(),
                 logging_steps=1,
                 optim="adamw_8bit",
-                output_dir="outputs",
+                output_dir=f"outputs/{task_id}",
                 remove_unused_columns=False,
                 dataset_kwargs={"skip_prepare_dataset": True},
                 dataset_num_proc=4,
+                lr_scheduler_type="cosine",
                 max_seq_length=2048,
                 report_to="none",
             ),
         )
 
+        print("[TRAINING] Starting training...")
         trainer.add_callback(ProgressCallback(task_id, trainer.args.max_steps))
         trainer.train()
 
+        print("[TRAINING COMPLETE] Training completed successfully.")
         stats = print_training_summary(trainer)
+        log_history = trainer.state.log_history
 
         task_status[task_id] = {
             "status": "COMPLETED",
             "progress": 100,
             "error": None,
             "metrics": stats,
+            "log_history": log_history,
         }
         trained_models[task_id] = (model, tokenizer)
 

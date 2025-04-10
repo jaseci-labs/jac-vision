@@ -19,6 +19,7 @@ from services.training import (
     trained_models,
 )
 
+
 router = APIRouter()
 
 
@@ -104,3 +105,16 @@ def save_gguf_endpoint(request: GGUFSaveRequest):
         raise HTTPException(
             status_code=404, detail="Model not found or training not completed"
         )
+
+
+@router.get("/get-metrics/{task_id}")
+def get_training_metrics(task_id: str):
+    if task_id not in task_status:
+        return {"error": "Invalid task ID"}
+
+    status = task_status[task_id]
+    return {
+        "status": status.get("status"),
+        "metrics": status.get("metrics", {}),
+        "log_history": status.get("log_history", [])
+    }
