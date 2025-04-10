@@ -34,9 +34,11 @@ def get_custom_dataset(json_file_path, root_folder):
     custom_dataset = []
     for sample in data:
         full_path = os.path.join(root_folder, sample["image"])
+        print(full_path)
         if os.path.exists(full_path):
             try:
                 image = Image.open(full_path).convert("RGB")
+                print(image)
                 custom_dataset.append(convert_to_conversation({
                     "image": image,
                     "caption": sample["caption"]
