@@ -39,7 +39,7 @@ def get_custom_dataset(json_file_path, root_folder):
             try:
                 image = Image.open(full_path).convert("RGB")
                 print(image)
-                print(image.size)
+                print(image.show)
                 print(sample["caption"])
                 print()
                 custom_dataset.append(convert_to_conversation({
