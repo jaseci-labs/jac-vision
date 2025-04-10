@@ -2,6 +2,7 @@ from unsloth import FastVisionModel, is_bf16_supported
 from unsloth.trainer import UnslothVisionDataCollator
 from datasets import load_dataset
 import traceback
+import os
 from fastapi import HTTPException
 from transformers import (TrainerCallback, TrainerControl, TrainerState,
                           TrainingArguments)
@@ -9,6 +10,8 @@ from trl import SFTConfig, SFTTrainer
 from utils.config_loader import load_model_config
 from utils.dataset_utils import convert_to_conversation
 from services.training_metrics import print_training_summary
+
+os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"  
 
 AVAILABLE_MODELS = [
     "unsloth/Llama-3.2-11B-Vision-bnb-4bit",

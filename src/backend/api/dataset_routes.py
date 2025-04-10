@@ -7,27 +7,13 @@ from io import BytesIO
 from fastapi import APIRouter, File, HTTPException, UploadFile, logger
 from fastapi.responses import FileResponse, StreamingResponse
 
-from services.dataset_service import get_all_images, process_image
+from services.dataset_service import get_all_images, load_existing_data, process_image
 from schemas.models import *
 
 router = APIRouter()
 
 json_file_path = "car_damage_data.json"
 root_folder = "CarDataset"
-
-def load_existing_data():
-    if os.path.exists(json_file_path):
-        try:
-            with open(json_file_path, "r") as file:
-                content = file.read().strip()
-                return json.loads(content) if content else []
-        except json.JSONDecodeError:
-            logger.warning(
-                f"Invalid JSON in {json_file_path}. Starting with an empty list."
-            )
-            return []
-    return []
-
 
 def save_json(data):
     with open(json_file_path, "w") as json_file:
@@ -101,9 +87,23 @@ async def download_dataset():
         headers={"Content-Disposition": "attachment; filename=dataset.zip"},
     )
 
+@router.get("/download-json")
+async def download_json():
+    if not os.path.exists(json_file_path):
+        raise HTTPException(status_code=404, detail="JSON file not found")
+    return FileResponse(
+        path=json_file_path,
+        filename="car_damage_data.json",
+        media_type="application/json"
+    )
+
 @router.get("/images/{filename:path}")
 async def serve_image(filename: str):
     file_path = os.path.join(root_folder, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(file_path)
+
+@router.get("/get-json")
+async def get_json():
+    return {"data": load_existing_data()}

@@ -312,8 +312,8 @@ export const saveCaption = async (request: SaveCaptionRequest): Promise<SaveCapt
 // Download the JSON file
 export const downloadJson = async (): Promise<Blob> => {
   try {
-    const response = await axios.get(`${API_URL}/download-json`, {
-      responseType: 'blob',
+    const response = await axios.get(`${API_URL}/api/datasets/download-json`, {
+      responseType: "blob",
     });
     return response.data;
   } catch (error) {

@@ -53,8 +53,8 @@ Ensure the following dependencies are installed before proceeding:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/GayuruRamanayake/vlm-finetuner.git
-cd vlm-finetuner
+git clone https://github.com/Jaseci-Labs/jac-vision.git
+cd jac-vision
 ```
 
 ### 2. Backend Setup
@@ -85,13 +85,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+#### d. Run the Backend
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 4000
+```
+
 ### 3. Frontend Setup
 
 #### a. Install Frontend Dependencies
 
 ```bash
 cd frontend  # Navigate to the frontend directory if applicable
-npm install
+npm install --legacy-peer-deps
 ```
 
 #### b. Start the Frontend
