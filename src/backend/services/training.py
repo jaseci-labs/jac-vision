@@ -34,14 +34,9 @@ def get_custom_dataset(json_file_path, root_folder):
     custom_dataset = []
     for sample in data:
         full_path = os.path.join(root_folder, sample["image"])
-        print(full_path)
         if os.path.exists(full_path):
             try:
-                image = Image.open(full_path).convert("RGB")
-                print(image)
-                print(image.show)
-                print(sample["caption"])
-                print()
+                image = Image.open(full_path)
                 custom_dataset.append(convert_to_conversation({
                     "image": image,
                     "caption": sample["caption"]
@@ -87,7 +82,7 @@ def train_model(model_name: str, task_id: str):
         raise HTTPException(status_code=400, detail="Invalid model name")
 
     task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
-    train_dataset = get_custom_dataset(json_file_path, root_folder)
+    converted_dataset = get_custom_dataset(json_file_path, root_folder)
 
     try:
         model, tokenizer = FastVisionModel.from_pretrained(
@@ -97,13 +92,21 @@ def train_model(model_name: str, task_id: str):
             model,
             finetune_vision_layers=False,
             finetune_language_layers=True,
-            finetune_attention_modules=True,
+            finetune_attention_modules=False,
             finetune_mlp_modules=True,
-            r=16,
-            lora_alpha=16,
-            lora_dropout=0,
-            bias="none",
-            random_state=3407,
+
+            r = 8,           # The larger, the higher the accuracy, but might overfit
+            lora_alpha = 8,  # Recommended alpha == r at least
+            lora_dropout = 0,
+            bias = "none",
+            random_state = 3407,
+            use_rslora = False,  # We support rank stabilized LoRA
+            loftq_config = None,
+            # r=16,
+            # lora_alpha=16,
+            # lora_dropout=0,
+            # bias="none",
+            # random_state=3407,
         )
 
         FastVisionModel.for_training(model)
@@ -112,10 +115,11 @@ def train_model(model_name: str, task_id: str):
             model=model,
             tokenizer=tokenizer,
             data_collator=UnslothVisionDataCollator(model, tokenizer),
-            train_dataset=train_dataset,
+            train_dataset=converted_dataset,
             args=SFTConfig(
                 per_device_train_batch_size=2,
                 gradient_accumulation_steps=4,
+                warmup_steps=5,
                 max_steps=20,
                 learning_rate=2e-4,
                 fp16=not is_bf16_supported(),
