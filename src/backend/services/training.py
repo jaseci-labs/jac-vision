@@ -19,6 +19,7 @@ from utils.config_loader import load_model_config
 from utils.dataset_utils import get_custom_dataset
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
+os.environ["UNSLOTH_RETURN_LOGITS"] = "1"
 
 AVAILABLE_MODELS = [
     "unsloth/Llama-3.2-11B-Vision-bnb-4bit",
