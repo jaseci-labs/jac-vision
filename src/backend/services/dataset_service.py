@@ -43,7 +43,7 @@ def process_image(
         try:
             image_base64 = encode_image(image_path)
             prompt = (
-                "Describe a car’s condition in one paragraph for a car damage dataset, based on the provided image. "
+                "Describe a car's condition in one paragraph for a car damage dataset, based on the provided image. "
                 "If visible damage exists, detail the type, the specific parts affected, the severity, and notable aspects like "
                 "the damage location. If no damage is visible, state that clearly and include the car’s "
                 "overall condition and any relevant observations. Ensure the description is clear, precise, and avoids assumptions "
