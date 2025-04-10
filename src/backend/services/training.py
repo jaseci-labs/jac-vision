@@ -110,11 +110,9 @@ def train_model(model_name: str, task_id: str):
         print("[MODEL INIT] Model and tokenizer loaded successfully.")
         FastVisionModel.for_training(model)
 
-        train_size = int(0.8 * len(converted_dataset))
-        eval_size = len(converted_dataset) - train_size
-        train_dataset, eval_dataset = converted_dataset.train_test_split(
-            train_size=train_size, test_size=eval_size
-        ).values()
+        train_dataset, eval_dataset = train_test_split(
+            converted_dataset, test_size=0.2, random_state=42
+        )
 
         trainer = SFTTrainer(
             model=model,
@@ -137,7 +135,7 @@ def train_model(model_name: str, task_id: str):
                 remove_unused_columns=False,
                 dataset_kwargs={"skip_prepare_dataset": True},
                 dataset_num_proc=4,
-                lr_scheduler_type="cosine",
+                lr_scheduler_type="cosine", #linear
                 max_seq_length=2048,
                 report_to="none",
             ),
