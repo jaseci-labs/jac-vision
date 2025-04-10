@@ -3,6 +3,7 @@ from unsloth.trainer import UnslothVisionDataCollator
 from datasets import load_dataset
 import traceback
 import os
+import json
 from fastapi import HTTPException
 from transformers import (TrainerCallback, TrainerControl, TrainerState,
                           TrainingArguments)
@@ -11,7 +12,7 @@ from utils.config_loader import load_model_config
 from utils.dataset_utils import convert_to_conversation
 from services.training_metrics import print_training_summary
 
-os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"  
+os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
 
 AVAILABLE_MODELS = [
     "unsloth/Llama-3.2-11B-Vision-bnb-4bit",
@@ -20,7 +21,24 @@ AVAILABLE_MODELS = [
 ]
 task_status = {}
 trained_models = {}
+json_file_path = "jsons/car_damage_data.json"
+root_folder = "datasets/CarDataset"
 
+def get_custom_dataset(json_file_path, root_folder):
+    with open(json_file_path, "r") as f:
+        data = json.load(f)
+
+    custom_dataset = []
+    for sample in data:
+        full_path = os.path.join(root_folder, sample["image"])
+        if os.path.exists(full_path):
+            custom_dataset.append(convert_to_conversation({
+                "image": full_path,
+                "caption": sample["caption"]
+            }, is_custom=True))
+        else:
+            print(f"[WARNING] Image not found: {full_path}")
+    return custom_dataset
 
 class ProgressCallback(TrainerCallback):
     def __init__(self, task_id: str, total_steps: int):
@@ -67,6 +85,7 @@ def train_model(model_name: str, task_id: str):
         raise HTTPException(status_code=400, detail="Invalid model name")
 
     task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
+    train_dataset = get_custom_dataset(json_file_path, root_folder)
 
     try:
         model, tokenizer = FastVisionModel.from_pretrained(
@@ -85,8 +104,8 @@ def train_model(model_name: str, task_id: str):
             random_state=3407,
         )
 
-        dataset = load_dataset("unsloth/Radiology_mini", split="train[:10]")
-        converted_dataset = [convert_to_conversation(sample) for sample in dataset]
+        # dataset = load_dataset("unsloth/Radiology_mini", split="train[:10]")
+        # converted_dataset = [convert_to_conversation(sample) for sample in dataset]
 
         FastVisionModel.for_training(model)
 
@@ -94,7 +113,7 @@ def train_model(model_name: str, task_id: str):
             model=model,
             tokenizer=tokenizer,
             data_collator=UnslothVisionDataCollator(model, tokenizer),
-            train_dataset=converted_dataset,
+            train_dataset=train_dataset,
             args=SFTConfig(
                 per_device_train_batch_size=2,
                 gradient_accumulation_steps=4,
