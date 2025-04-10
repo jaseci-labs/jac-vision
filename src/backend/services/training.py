@@ -31,15 +31,13 @@ def get_custom_dataset(json_file_path, root_folder):
 
     custom_dataset = []
     for sample in data:
-        print(f"sample", sample)
         full_path = os.path.join(root_folder, sample["image"])
         if os.path.exists(full_path):
-            print(f"full_path", full_path)
             custom_dataset.append(convert_to_conversation({
                 "image": full_path,
                 "caption": sample["caption"]
             }, is_custom=True))
-            print("done image converting")
+            print(custom_dataset)
         else:
             print(f"[WARNING] Image not found: {full_path}")
     return custom_dataset
@@ -89,9 +87,7 @@ def train_model(model_name: str, task_id: str):
         raise HTTPException(status_code=400, detail="Invalid model name")
 
     task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
-    print(f"datasetpath", json_file_path)
     train_dataset = get_custom_dataset(json_file_path, root_folder)
-    print("done dataset loading")
     try:
         model, tokenizer = FastVisionModel.from_pretrained(
             model_name, load_in_4bit=True, use_gradient_checkpointing="unsloth"
