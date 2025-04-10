@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Typography, List, ListItem, ListItemText } from '@mui/material';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-
+import { API_URL } from '../utils/api';
 interface ModelsProps {
   toast: typeof toast;
   themeMode: 'light' | 'dark';
@@ -17,7 +17,7 @@ const Models: React.FC<ModelsProps> = ({ toast, themeMode }) => {
     const fetchModels = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/models');
+        const response = await axios.get(`${API_URL}/models/models`);
         setModels(response.data.models);
         toast.success('Models loaded successfully!');
       } catch (err) {
