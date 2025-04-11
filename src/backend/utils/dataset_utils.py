@@ -1,8 +1,10 @@
 import json
 import os
+
 from PIL import Image
 
 instruction = "You are an expert damage assessment analyzer. Describe accurately what you see in this image."
+
 
 def convert_to_conversation(sample):
     return {
@@ -20,6 +22,7 @@ def convert_to_conversation(sample):
             },
         ]
     }
+
 
 def get_custom_dataset(json_file_path, root_folder):
     with open(json_file_path, "r") as f:
@@ -41,5 +44,3 @@ def get_custom_dataset(json_file_path, root_folder):
         else:
             print(f"[WARNING] Image not found: {full_path}")
     return custom_dataset
-
-

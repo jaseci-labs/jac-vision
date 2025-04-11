@@ -5,7 +5,8 @@ import traceback
 from datasets import load_dataset
 from fastapi import HTTPException
 from PIL import Image
-from services.training_metrics import print_training_summary, compute_metrics
+from services.training_metrics import compute_metrics, print_training_summary
+from sklearn.model_selection import train_test_split
 from transformers import (
     TrainerCallback,
     TrainerControl,
@@ -17,7 +18,6 @@ from unsloth import FastVisionModel, is_bf16_supported
 from unsloth.trainer import UnslothVisionDataCollator
 from utils.config_loader import load_model_config
 from utils.dataset_utils import get_custom_dataset
-from sklearn.model_selection import train_test_split
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
 os.environ["UNSLOTH_RETURN_LOGITS"] = "1"
@@ -131,11 +131,11 @@ def train_model(model_name: str, task_id: str):
                 bf16=is_bf16_supported(),
                 logging_steps=1,
                 optim="adamw_8bit",
-                #output_dir=f"outputs/{task_id}",
+                # output_dir=f"outputs/{task_id}",
                 remove_unused_columns=False,
                 dataset_kwargs={"skip_prepare_dataset": True},
                 dataset_num_proc=4,
-                lr_scheduler_type="cosine", #linear
+                lr_scheduler_type="cosine",  # linear
                 max_seq_length=2048,
                 report_to="none",
             ),

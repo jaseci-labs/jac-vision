@@ -19,7 +19,6 @@ from services.training import (
     trained_models,
 )
 
-
 router = APIRouter()
 
 
@@ -116,5 +115,5 @@ def get_training_metrics(task_id: str):
     return {
         "status": status.get("status"),
         "metrics": status.get("metrics", {}),
-        "log_history": status.get("log_history", [])
+        "log_history": status.get("log_history", []),
     }

@@ -1,6 +1,7 @@
 import torch
 from sklearn.metrics import accuracy_score
 
+
 def print_training_summary(trainer):
     # Get initial GPU memory usage
     start_gpu_memory = round(torch.cuda.memory_allocated() / 1024 / 1024 / 1024, 3)
