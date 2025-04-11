@@ -70,33 +70,38 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
   }, []);
 
 
-    useEffect(() => {
+  useEffect(() => {
     if (!taskId) return; // Don't start polling if taskId is not set
 
     const intervalId = setInterval(async () => {
       const taskStatus = await getTaskStatus(taskId);
       if (taskStatus) {
         setViewProgress(taskStatus.progress);
-        if (taskStatus.status === 'COMPLETED') {
-          setFineTuneStatus('Fine-tuning completed successfully!');
-          toast.success('Fine-tuning completed successfully!');
-          setFineTuneLoading(false);
-          clearInterval(intervalId);
-        } else if (taskStatus.status === 'FAILED') {
-          setFineTuneStatus('Fine-tuning failed.');
-          toast.error('Fine-tuning failed.');
-          setFineTuneLoading(false);
-          clearInterval(intervalId);
+        if (taskStatus.progress == 0) {
+          setFineTuneLoading(true);
+        } else {
+          if (taskStatus.status === 'COMPLETED') {
+            setFineTuneLoading(false);
+            setFineTuneStatus('Fine-tuning completed successfully!');
+            toast.success('Fine-tuning completed successfully!');
+            setFineTuneLoading(false);
+            clearInterval(intervalId);
+          } else if (taskStatus.status === 'FAILED') {
+            setFineTuneStatus('Fine-tuning failed.');
+            toast.error('Fine-tuning failed.');
+            setFineTuneLoading(false);
+            clearInterval(intervalId);
+          }
+          setLogs(prevLogs => [
+            ...prevLogs,
+            {
+              status: taskStatus.status,
+              progress: `${taskStatus.progress}%`,
+              epoch: taskStatus.epoch || 'N/A',
+              loss: taskStatus.loss || 'N/A',
+            },
+          ]);
         }
-        setLogs(prevLogs => [
-          ...prevLogs,
-          {
-            status: taskStatus.status,
-            progress: `${taskStatus.progress}%`,
-            epoch: taskStatus.epoch || 'N/A',
-            loss: taskStatus.loss || 'N/A',
-          },
-        ]);
       } else {
         setLogs(prevLogs => [
           ...prevLogs,
@@ -148,11 +153,11 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setFineTuneLoading(true);
     setError('');
     try {
+      setLogs([]);
       const response = await finetuneModel(selectedModel, datasetLink, "Test");
       setFineTuneStatus(response.status);
       setTaskId(response["task_id"]);
       localStorage.setItem('taskId', response["task_id"]);
-      // await loadModels();
     } catch (error: any) {
       const errorMessage = error.message || 'Error during fine-tuning. Check the console.';
       setError(errorMessage);
@@ -241,7 +246,8 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
 
         <TextField
           label="Dataset Link"
-          value={datasetLink}
+          value="Car Damage Datatset"
+          // value={datasetLink}
           onChange={(e) => setDatasetLink(e.target.value)}
           variant="outlined"
           fullWidth

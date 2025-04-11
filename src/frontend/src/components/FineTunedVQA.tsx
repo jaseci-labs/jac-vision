@@ -83,7 +83,7 @@ const FineTunedVQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toa
       };
 
     const handleVqa = async () => {
-        if (!vqaImage || !vqaQuestion || !selectedModel) {
+        if (!vqaQuestion || !selectedModel) {
             toast.error('Please upload an image and ask a question.');
             return;
         }
