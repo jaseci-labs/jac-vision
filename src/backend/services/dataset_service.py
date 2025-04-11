@@ -11,6 +11,7 @@ import requests
 from fastapi import HTTPException, logger
 from schemas.models import CaptionResponse
 from utils.image_utils import encode_image
+from typing import Dict, Any
 
 MAX_RETRIES = 3
 SITE_URL = "<YOUR_SITE_URL>"
@@ -18,6 +19,15 @@ SITE_NAME = "<YOUR_SITE_NAME>"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 root_folder = "datasets/CarDataset"
 json_file_path = "jsons/car_damage_data.json"
+
+auto_annotation_status: Dict[str, Any] = {
+    "running": False,
+    "processed": 0,
+    "failed": 0,
+    "current_image": None,
+    "total_images": 0,
+    "errors": [],
+}
 
 
 def load_existing_data():
@@ -166,20 +176,46 @@ def get_all_images():
                     image_files.append((image_path, relative_path))
     return image_files
 
+
 async def auto_annotate_task(api_key: str, api_type: str, model: str):
-    while True:
+    global auto_annotation_status
+    try:
+        auto_annotation_status["running"] = True
         image_files = get_all_images()
-        if not image_files: break
+        auto_annotation_status["total_images"] = len(image_files)
 
-        image_path, relative_path = image_files[0]
-        try:
-            result = process_image(image_path, relative_path, api_key, api_type, model)
-            if result:
-                existing_data = load_existing_data()
-                existing_data.append({"image": relative_path, "caption": result.caption})
-                with open(json_file_path, "w") as f:
-                    json.dump(existing_data, f)
-        except Exception as e:
-            logger.error(f"Failed to process {relative_path}: {str(e)}")
+        logger.info(f"Starting auto-annotation of {len(image_files)} images")
 
-        await asyncio.sleep(1)  # Rate limiting
+        while image_files:
+            image_path, relative_path = image_files[0]
+            auto_annotation_status["current_image"] = relative_path
+
+            try:
+                result = process_image(image_path, relative_path, api_key, api_type, model)
+                if result:
+                    existing_data = load_existing_data()
+                    existing_data.append({"image": relative_path, "caption": result.caption})
+                    with open(json_file_path, "w") as f:
+                        json.dump(existing_data, f)
+                    auto_annotation_status["processed"] += 1
+                    logger.info(f"Processed {relative_path} successfully")
+                else:
+                    auto_annotation_status["failed"] += 1
+                    logger.warning(f"Failed to process {relative_path}")
+            except Exception as e:
+                auto_annotation_status["failed"] += 1
+                error_msg = f"{relative_path}: {str(e)}"
+                auto_annotation_status["errors"].append(error_msg)
+                logger.error(error_msg)
+
+            # Remove processed image from queue
+            image_files = get_all_images()
+            await asyncio.sleep(1)
+
+        logger.info("Auto-annotation completed successfully")
+    finally:
+        auto_annotation_status.update({
+            "running": False,
+            "current_image": None,
+        })
+        logger.info("Auto-annotation task has ended")

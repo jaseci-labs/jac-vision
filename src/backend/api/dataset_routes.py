@@ -7,7 +7,7 @@ from io import BytesIO
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile, logger
 from fastapi.responses import FileResponse, StreamingResponse
 from schemas.models import AutoAnnotateRequest, CaptionRequest
-from services.dataset_service import auto_annotate_task, get_all_images, load_existing_data, process_image
+from services.dataset_service import auto_annotate_task, get_all_images, load_existing_data, process_image, auto_annotation_status
 
 router = APIRouter()
 
@@ -133,6 +133,17 @@ async def start_auto_annotate(
     request: AutoAnnotateRequest,
     background_tasks: BackgroundTasks
 ):
+    if auto_annotation_status["running"]:
+        raise HTTPException(400, "Annotation already in progress")
+
+    # Reset status
+    auto_annotation_status.update({
+        "processed": 0,
+        "failed": 0,
+        "errors": [],
+        "total_images": 0,
+    })
+
     background_tasks.add_task(
         auto_annotate_task,
         request.api_key,
@@ -140,3 +151,21 @@ async def start_auto_annotate(
         request.model
     )
     return {"message": "Auto annotation started"}
+
+@router.get("/auto-annotate/status")
+async def get_annotation_status():
+    return {
+        "status": "running" if auto_annotation_status["running"] else "idle",
+        "progress": {
+            "processed": auto_annotation_status["processed"],
+            "failed": auto_annotation_status["failed"],
+            "total": auto_annotation_status["total_images"],
+            "percentage": round(
+                (auto_annotation_status["processed"] + auto_annotation_status["failed"]) /
+                max(auto_annotation_status["total_images"], 1) * 100,
+                2
+            ) if auto_annotation_status["total_images"] > 0 else 0,
+        },
+        "current_image": auto_annotation_status["current_image"],
+        "errors": auto_annotation_status["errors"][-5:]  # Last 5 errors
+    }

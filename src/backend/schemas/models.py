@@ -87,3 +87,9 @@ class AutoAnnotateRequest(BaseModel):
     api_key: str
     api_type: str
     model: str = "google/gemma-3-12b-it:free"
+
+class AnnotationStatusResponse(BaseModel):
+    status: str
+    progress: dict
+    current_image: Optional[str]
+    errors: List[str]
