@@ -1,4 +1,5 @@
 import torch
+from sklearn.metrics import accuracy_score
 
 
 def print_training_summary(trainer):
@@ -30,4 +31,13 @@ def print_training_summary(trainer):
         "lora_memory_gb": used_memory_for_lora,
         "memory_usage_percent": used_percentage,
         "lora_memory_percent": lora_percentage,
+    }
+
+
+def compute_metrics(eval_preds):
+    predictions, labels = eval_preds
+    predictions = predictions.argmax(axis=-1)
+    acc = accuracy_score(labels, predictions)
+    return {
+        "eval_accuracy": acc,
     }

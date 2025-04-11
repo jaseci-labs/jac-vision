@@ -1,19 +1,23 @@
 import json
+import logging
 import os
 import shutil
 import zipfile
 from io import BytesIO
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, logger
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
+from schemas.models import AutoAnnotateRequest, CaptionRequest
+from services.dataset_service import auto_annotate_task, get_all_images, load_existing_data, process_image, auto_annotation_status
 
-from services.dataset_service import get_all_images, load_existing_data, process_image
-from schemas.models import *
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 json_file_path = "jsons/car_damage_data.json"
 root_folder = "datasets/CarDataset"
+
 
 def save_json(data):
     with open(json_file_path, "w") as json_file:
@@ -47,7 +51,11 @@ async def upload_image_folder(file: UploadFile = File(...)):
 
 
 @router.get("/get-next-image")
-async def get_next_image(api_key: str = "", api_type: str = "openrouter", model: str = "google/gemma-3-12b-it:free"):
+async def get_next_image(
+    api_key: str = "",
+    api_type: str = "openrouter",
+    model: str = "google/gemma-3-12b-it:free",
+):
     if not api_key:
         raise HTTPException(status_code=400, detail="API key is required")
     image_files = get_all_images()
@@ -56,7 +64,11 @@ async def get_next_image(api_key: str = "", api_type: str = "openrouter", model:
     image_path, relative_path = image_files[0]
     image_data = process_image(image_path, relative_path, api_key, api_type, model)
     if image_data:
-        return {"image_path": relative_path, "caption": image_data.caption, "total": len(image_files)}
+        return {
+            "image_path": relative_path,
+            "caption": image_data.caption,
+            "total": len(image_files),
+        }
     raise HTTPException(status_code=500, detail="Failed to process image")
 
 
@@ -88,15 +100,15 @@ async def download_dataset():
         headers={"Content-Disposition": "attachment; filename=dataset.zip"},
     )
 
+
 @router.get("/download-json")
 async def download_json():
     if not os.path.exists(json_file_path):
         raise HTTPException(status_code=404, detail="JSON file not found")
     return FileResponse(
-        path=json_file_path,
-        filename=json_file_path,
-        media_type="application/json"
+        path=json_file_path, filename=json_file_path, media_type="application/json"
     )
+
 
 @router.get("/images/{filename:path}")
 async def serve_image(filename: str):
@@ -105,9 +117,11 @@ async def serve_image(filename: str):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(file_path)
 
+
 @router.get("/get-json")
 async def get_json():
     return {"data": load_existing_data()}
+
 
 @router.delete("/clear-data")
 async def clear_data():
@@ -117,3 +131,45 @@ async def clear_data():
         shutil.rmtree(root_folder)
         os.makedirs(root_folder)
     return {"message": "All data cleared successfully"}
+
+@router.post("/auto-annotate")
+async def start_auto_annotate(
+    request: AutoAnnotateRequest,
+    background_tasks: BackgroundTasks
+):
+    if auto_annotation_status["running"]:
+        raise HTTPException(400, "Annotation already in progress")
+
+    # Reset status
+    auto_annotation_status.update({
+        "processed": 0,
+        "failed": 0,
+        "errors": [],
+        "total_images": 0,
+    })
+
+    background_tasks.add_task(
+        auto_annotate_task,
+        request.api_key,
+        request.api_type,
+        request.model
+    )
+    return {"message": "Auto annotation started"}
+
+@router.get("/auto-annotate/status")
+async def get_annotation_status():
+    return {
+        "status": "running" if auto_annotation_status["running"] else "idle",
+        "progress": {
+            "processed": auto_annotation_status["processed"],
+            "failed": auto_annotation_status["failed"],
+            "total": auto_annotation_status["total_images"],
+            "percentage": round(
+                (auto_annotation_status["processed"] + auto_annotation_status["failed"]) /
+                max(auto_annotation_status["total_images"], 1) * 100,
+                2
+            ) if auto_annotation_status["total_images"] > 0 else 0,
+        },
+        "current_image": auto_annotation_status["current_image"],
+        "errors": auto_annotation_status["errors"][-5:]  # Last 5 errors
+    }

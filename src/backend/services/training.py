@@ -1,19 +1,26 @@
+import json
+import os
+import traceback
+
+from datasets import load_dataset
+from fastapi import HTTPException
+from PIL import Image
+from services.training_metrics import compute_metrics, print_training_summary
+from sklearn.model_selection import train_test_split
+from transformers import (
+    TrainerCallback,
+    TrainerControl,
+    TrainerState,
+    TrainingArguments,
+)
+from trl import SFTConfig, SFTTrainer
 from unsloth import FastVisionModel, is_bf16_supported
 from unsloth.trainer import UnslothVisionDataCollator
-from datasets import load_dataset
-import traceback
-import os
-import json
-from fastapi import HTTPException
-from transformers import (TrainerCallback, TrainerControl, TrainerState,
-                          TrainingArguments)
-from trl import SFTConfig, SFTTrainer
 from utils.config_loader import load_model_config
-from utils.dataset_utils import convert_to_conversation
-from services.training_metrics import print_training_summary
-from PIL import Image
+from utils.dataset_utils import get_custom_dataset
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
+os.environ["UNSLOTH_RETURN_LOGITS"] = "1"
 
 AVAILABLE_MODELS = [
     "unsloth/Llama-3.2-11B-Vision-bnb-4bit",
@@ -27,38 +34,29 @@ trained_models = {}
 json_file_path = "jsons/car_damage_data.json"
 root_folder = "datasets/CarDataset"
 
-def get_custom_dataset(json_file_path, root_folder):
-    with open(json_file_path, "r") as f:
-        data = json.load(f)
-
-    custom_dataset = []
-    for sample in data:
-        full_path = os.path.join(root_folder, sample["image"])
-        if os.path.exists(full_path):
-            try:
-                image = Image.open(full_path)
-                custom_dataset.append(convert_to_conversation({
-                    "image": image,
-                    "caption": sample["caption"]
-                }))
-            except Exception as e:
-                print(f"[ERROR] Could not load image {full_path}: {e}")
-        else:
-            print(f"[WARNING] Image not found: {full_path}")
-    return custom_dataset
 
 class ProgressCallback(TrainerCallback):
     def __init__(self, task_id: str, total_steps: int):
         self.task_id = task_id
         self.total_steps = total_steps
 
-    def on_step_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
+    def on_step_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
         progress = int((state.global_step / self.total_steps) * 100)
         task_status[self.task_id] = {
             "status": "RUNNING",
             "progress": progress,
             "loss": state.log_history[-1].get("loss") if state.log_history else None,
-            "learning_rate": (state.log_history[-1].get("learning_rate") if state.log_history else None),
+            "learning_rate": (
+                state.log_history[-1].get("learning_rate")
+                if state.log_history
+                else None
+            ),
             "epoch": state.epoch,
             "error": None,
         }
@@ -83,6 +81,7 @@ def train_model(model_name: str, task_id: str):
 
     task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
     converted_dataset = get_custom_dataset(json_file_path, root_folder)
+    print(f"[TRAIN START] Task ID: {task_id}")
 
     try:
         model, tokenizer = FastVisionModel.from_pretrained(
@@ -94,14 +93,13 @@ def train_model(model_name: str, task_id: str):
             finetune_language_layers=True,
             finetune_attention_modules=False,
             finetune_mlp_modules=True,
-
-            r = 8,           # The larger, the higher the accuracy, but might overfit
-            lora_alpha = 8,  # Recommended alpha == r at least
-            lora_dropout = 0,
-            bias = "none",
-            random_state = 3407,
-            use_rslora = False,  # We support rank stabilized LoRA
-            loftq_config = None,
+            r=8,  # The larger, the higher the accuracy, but might overfit
+            lora_alpha=8,  # Recommended alpha == r at least
+            lora_dropout=0,
+            bias="none",
+            random_state=3407,
+            use_rslora=False,  # We support rank stabilized LoRA
+            loftq_config=None,
             # r=16,
             # lora_alpha=16,
             # lora_dropout=0,
@@ -109,13 +107,20 @@ def train_model(model_name: str, task_id: str):
             # random_state=3407,
         )
 
+        print("[MODEL INIT] Model and tokenizer loaded successfully.")
         FastVisionModel.for_training(model)
+
+        train_dataset, eval_dataset = train_test_split(
+            converted_dataset, test_size=0.2, random_state=42
+        )
 
         trainer = SFTTrainer(
             model=model,
             tokenizer=tokenizer,
             data_collator=UnslothVisionDataCollator(model, tokenizer),
-            train_dataset=converted_dataset,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            compute_metrics=compute_metrics,
             args=SFTConfig(
                 per_device_train_batch_size=2,
                 gradient_accumulation_steps=4,
@@ -126,27 +131,49 @@ def train_model(model_name: str, task_id: str):
                 bf16=is_bf16_supported(),
                 logging_steps=1,
                 optim="adamw_8bit",
-                output_dir="outputs",
+                # output_dir=f"outputs/{task_id}",
                 remove_unused_columns=False,
                 dataset_kwargs={"skip_prepare_dataset": True},
                 dataset_num_proc=4,
+                lr_scheduler_type="cosine",  # linear
                 max_seq_length=2048,
                 report_to="none",
             ),
         )
 
+        print("[TRAINING] Starting training...")
         trainer.add_callback(ProgressCallback(task_id, trainer.args.max_steps))
         trainer.train()
 
+        print("[TRAINING COMPLETE] Training completed successfully.")
         stats = print_training_summary(trainer)
+        log_history = trainer.state.log_history
 
-        task_status[task_id] = {"status": "COMPLETED", "progress": 100, "error": None, "metrics": stats}
+        print("[SAVING MODEL] Saving model and tokenizer.")
+        task_path = f"outputs/{task_id}"
+        model.save_pretrained(
+            task_path,
+            safe_serialization=True,
+            save_adapter=True,  # Critical for PEFT
+        )
+        tokenizer.save_pretrained(task_path)
+
+        task_status[task_id] = {
+            "status": "COMPLETED",
+            "progress": 100,
+            "error": None,
+            "metrics": stats,
+            "log_history": log_history,
+        }
         trained_models[task_id] = (model, tokenizer)
 
     except Exception as e:
         task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}
 
-def train_model_with_goal(task_id: str, model_name: str, dataset_id: str, goal_type: str, target: str):
+
+def train_model_with_goal(
+    task_id: str, model_name: str, dataset_id: str, goal_type: str, target: str
+):
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
 
@@ -154,7 +181,9 @@ def train_model_with_goal(task_id: str, model_name: str, dataset_id: str, goal_t
         config = load_model_config(model_name, goal_type, target)
 
         print(f"[TRAIN START] Task ID: {task_id}")
-        print(f"[TRAIN INFO] Loading config for model: {model_name}, goal: {goal_type}, target: {target}")
+        print(
+            f"[TRAIN INFO] Loading config for model: {model_name}, goal: {goal_type}, target: {target}"
+        )
         print("[TRAIN CONFIG] Hyperparameters loaded:")
         print(config)
 
@@ -194,7 +223,11 @@ def train_model_with_goal(task_id: str, model_name: str, dataset_id: str, goal_t
                 fp16=not is_bf16_supported() if config["mixed_precision"] else False,
                 bf16=is_bf16_supported() if config["mixed_precision"] else False,
                 logging_steps=1,
-                optim="adamw_8bit" if "8bit" in config["optimizer"].lower() else "adamw_torch",
+                optim=(
+                    "adamw_8bit"
+                    if "8bit" in config["optimizer"].lower()
+                    else "adamw_torch"
+                ),
                 output_dir=f"outputs/{task_id}",
                 remove_unused_columns=False,
                 dataset_kwargs={"skip_prepare_dataset": True},
@@ -212,7 +245,12 @@ def train_model_with_goal(task_id: str, model_name: str, dataset_id: str, goal_t
         stats = print_training_summary(trainer)
         print("[TRAINING COMPLETE] Training completed successfully.")
 
-        task_status[task_id] = {"status": "COMPLETED", "progress": 100, "error": None, "metrics": stats}
+        task_status[task_id] = {
+            "status": "COMPLETED",
+            "progress": 100,
+            "error": None,
+            "metrics": stats,
+        }
         trained_models[task_id] = (model, tokenizer)
 
     except Exception as e:

@@ -4,6 +4,12 @@ import uuid
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
+from schemas.models import (
+    FineTuningRequest,
+    GGUFSaveRequest,
+    GoalTrainingRequest,
+    SaveModelRequest,
+)
 from services.save import save_gguf_model, save_model
 from services.training import (
     AVAILABLE_MODELS,
@@ -12,8 +18,6 @@ from services.training import (
     train_model_with_goal,
     trained_models,
 )
-
-from schemas.models import *
 
 router = APIRouter()
 
@@ -100,3 +104,16 @@ def save_gguf_endpoint(request: GGUFSaveRequest):
         raise HTTPException(
             status_code=404, detail="Model not found or training not completed"
         )
+
+
+@router.get("/get-metrics/{task_id}")
+def get_training_metrics(task_id: str):
+    if task_id not in task_status:
+        return {"error": "Invalid task ID"}
+
+    status = task_status[task_id]
+    return {
+        "status": status.get("status"),
+        "metrics": status.get("metrics", {}),
+        "log_history": status.get("log_history", []),
+    }

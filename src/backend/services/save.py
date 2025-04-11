@@ -2,7 +2,6 @@ import os
 import traceback
 
 from huggingface_hub import HfApi
-
 from services.training import trained_models
 
 # def save_model(model, app_name, hf_username, hf_token):
