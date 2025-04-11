@@ -13,25 +13,11 @@ def list_models():
 def load_model(task_id):
     task_path = os.path.join("outputs", task_id)
 
-    # Load base config
-    peft_config = PeftConfig.from_pretrained(task_path)
-
-    # Load base model
-    base_model = FastVisionModel.from_pretrained(
-        peft_config.base_model_name_or_path,
-        load_in_4bit=True,
+    model, tokenizer = FastVisionModel.from_pretrained(
+        model_name = task_path,
+        load_in_4bit = True, # Set to False for 16bit LoRA
     )
-
-    # Load PEFT model
-    model = PeftModel.from_pretrained(
-        base_model,
-        task_path,
-        is_trainable=False,
-    )
-
-    # Merge and load tokenizer
-    model = model.merge_and_unload()
-    tokenizer = AutoTokenizer.from_pretrained(task_path)
+    FastVisionModel.for_inference(model)
 
     loaded_models[task_id] = (model, tokenizer)
     return model, tokenizer

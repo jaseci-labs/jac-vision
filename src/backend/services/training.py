@@ -158,13 +158,6 @@ def train_model(model_name: str, task_id: str):
         )
         tokenizer.save_pretrained(task_path)
 
-        # Merge and save final model
-        merged_model = model.merge_and_unload()
-        merged_model.save_pretrained(
-            os.path.join(task_path, "merged"),
-            safe_serialization=True
-        )
-
         task_status[task_id] = {
             "status": "COMPLETED",
             "progress": 100,
@@ -172,7 +165,7 @@ def train_model(model_name: str, task_id: str):
             "metrics": stats,
             "log_history": log_history,
         }
-        trained_models[task_id] = (merged_model, tokenizer)
+        trained_models[task_id] = (model, tokenizer)
 
     except Exception as e:
         task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}
