@@ -151,6 +151,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       const response = await finetuneModel(selectedModel, datasetLink, "Test");
       setFineTuneStatus(response.status);
       setTaskId(response["task_id"]);
+      localStorage.setItem('taskId', response["task_id"]);
       // await loadModels();
     } catch (error: any) {
       const errorMessage = error.message || 'Error during fine-tuning. Check the console.';

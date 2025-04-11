@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -36,6 +36,7 @@ import Settings from './components/Settings';
 import ImageCaptioning from './components/ImageCaptioning'; // Added for Image Captioning
 import logo from './assets/logo.png';
 import './styles/App.css';
+import FineTunedVQA from './components/FineTunedVQA';
 
 const App: React.FC = () => {
   const [selectedSection, setSelectedSection] = useState<string>('fine-tune');
@@ -80,7 +81,7 @@ const App: React.FC = () => {
       case 'fine-tune':
         return <FineTune selectedModel={selectedModel} setSelectedModel={setSelectedModel} toast={toast} />;
       case 'vqa':
-        return <VQA selectedModel={selectedModel} setSelectedModel={setSelectedModel} toast={toast} />;
+        return <FineTunedVQA selectedModel={selectedModel} setSelectedModel={setSelectedModel} toast={toast} />;
       case 'search':
         return <Search toast={toast} themeMode={themeMode} />;
       case 'models':
@@ -162,6 +163,7 @@ const App: React.FC = () => {
               { text: 'Image Captioning', icon: <ImageIcon />, section: 'image-captioning' }, // Added for Image Captioning
               { text: 'Fine-Tune', icon: <FineTuneIcon />, section: 'fine-tune' },
               { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
+              // { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
               // { text: 'Models', icon: <ModelsIcon />, section: 'models' },
               { text: 'Developer', icon: <DeveloperIcon />, section: 'developer' },
               { text: 'Settings', icon: <SettingsIcon />, section: 'settings' },

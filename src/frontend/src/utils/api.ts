@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = "https://owoxsmmqrd1woh-8000.proxy.runpod.net";
+export const API_URL = "https://l0fss7gpx1wmp0-8000.proxy.runpod.net";
 
 // Define TypeScript interfaces for API responses
 export interface Model {
@@ -152,6 +152,54 @@ export const performVqa = async (
 export const fetchModels = async (): Promise<ModelsResponse> => {
   try {
     const response = await axios.get(`${API_URL}/api/finetune/models`);
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+// Fetch list of Finetuned models
+export const fetchFineTunedModels = async (): Promise<ModelsResponse> => {
+  try {
+    const response = await axios.get(`${API_URL}/api/inference/models`);
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+// Load a fine-tuned model for inference
+export const loadFineTunedModelForInference = async (task_id: string): Promise<ClearDataResponse> => {
+  try {
+    const formData = new FormData();
+    formData.append("task_id", task_id);
+    const response = await axios.post(`${API_URL}/api/inference/load-model`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+// Inference with a fine-tuned model
+export const inferenceWithFineTunedModel = async (
+  task_id: string,
+  image: File | null,
+  question: string,
+): Promise<VqaResponse> => {
+  const formData = new FormData();
+  formData.append('task_id', task_id);
+  formData.append('question', question);
+  if (image) {
+    formData.append('image', image);
+  }
+  try {
+    const response = await axios.post(`${API_URL}/api/inference/process`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   } catch (error) {
     return handleApiError(error);
