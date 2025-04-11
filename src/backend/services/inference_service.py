@@ -1,57 +1,70 @@
-from unsloth import FastLanguageModel
+from unsloth import FastVisionModel
 import os
-import torch
-from PIL import Image
-from transformers import TextStreamer
 from io import BytesIO
+from peft import PeftConfig, PeftModel
+from transformers import AutoTokenizer, TextStreamer
 
-inference_cache = {}  # key: task_id, value: (model, tokenizer)
+loaded_models = {}
 
-def list_finetuned_models():
-    output_dir = "outputs"
-    return {"models": [d for d in os.listdir(output_dir) if os.path.isdir(os.path.join(output_dir, d))]}
+def list_models():
+    models_dir = "outputs"
+    return {"models": [d for d in os.listdir(models_dir) if os.path.isdir(os.path.join(models_dir, d))]}
 
-def load_finetuned_model(task_id):
-    if task_id in inference_cache:
-        return {"status": "already loaded"}
+def load_model(task_id):
+    task_path = os.path.join("outputs", task_id)
 
-    model_dir = os.path.join("outputs", task_id)
-    if not os.path.exists(model_dir):
-        return {"error": f"Model not found for task_id: {task_id}"}
+    # Load base config
+    peft_config = PeftConfig.from_pretrained(task_path)
 
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name = model_dir,
-        dtype = None,
-        load_in_4bit = True,
+    # Load base model
+    base_model = FastVisionModel.from_pretrained(
+        peft_config.base_model_name_or_path,
+        load_in_4bit=True,
     )
-    model = FastLanguageModel.for_inference(model)
-    inference_cache[task_id] = (model, tokenizer)
 
-    return {"status": f"Model {task_id} loaded successfully"}
+    # Load PEFT model
+    model = PeftModel.from_pretrained(
+        base_model,
+        task_path,
+        is_trainable=False,
+    )
 
-async def run_vqa(task_id, image_file, instruction):
-    if task_id not in inference_cache:
-        return {"error": f"Model {task_id} not loaded."}
+    # Merge and load tokenizer
+    model = model.merge_and_unload()
+    tokenizer = AutoTokenizer.from_pretrained(task_path)
 
-    model, tokenizer = inference_cache[task_id]
+    loaded_models[task_id] = (model, tokenizer)
+    return model, tokenizer
 
-    image = Image.open(BytesIO(await image_file.read())).convert("RGB")
+def process_vqa(task_id, image, question):
+    if task_id not in loaded_models:
+        load_model(task_id)
+
+    model, tokenizer = loaded_models[task_id]
 
     messages = [
         {"role": "user", "content": [
             {"type": "image"},
-            {"type": "text", "text": instruction}
+            {"type": "text", "text": question}
         ]}
     ]
+
     input_text = tokenizer.apply_chat_template(messages, add_generation_prompt=True)
     inputs = tokenizer(
         image,
         input_text,
         add_special_tokens=False,
-        return_tensors="pt"
+        return_tensors="pt",
     ).to("cuda")
 
-    streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
-    output = model.generate(**inputs, streamer=streamer, max_new_tokens=128, temperature=1.5, min_p=0.1)
+    text_streamer = TextStreamer(tokenizer, skip_prompt=True)
+    outputs = model.generate(
+        **inputs,
+        streamer=text_streamer,
+        max_new_tokens=128,
+        use_cache=True,
+        temperature=1.5,
+        min_p=0.1
+    )
 
-    return {"answer": tokenizer.decode(output[0], skip_special_tokens=True)}
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)

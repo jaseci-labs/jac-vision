@@ -1,24 +1,37 @@
-from fastapi import APIRouter, UploadFile, File, Form
-from services.inference_service import (
-    list_finetuned_models,
-    load_finetuned_model,
-    run_vqa
-)
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi.responses import StreamingResponse
+from services.inference_service import list_models, load_model, process_vqa
+from PIL import Image
+from io import BytesIO
 
 router = APIRouter()
 
-@router.get("/vqa/models")
-def get_finetuned_models():
-    return list_finetuned_models()
+@router.get("/models")
+async def get_finetuned_models():
+    try:
+        return list_models()
+    except Exception as e:
+        raise HTTPException(500, str(e))
 
-@router.post("/vqa/load")
-def load_model(task_id: str):
-    return load_finetuned_model(task_id)
+@router.post("/load-model")
+async def load_finetuned_model(task_id: str = Form(...)):
+    try:
+        load_model(task_id)
+        return {"message": f"Model {task_id} loaded successfully"}
+    except Exception as e:
+        raise HTTPException(500, str(e))
 
-@router.post("/vqa/answer")
-async def get_vqa_answer(
+@router.post("/process")
+async def process_inference(
+    image: UploadFile = File(None),
     question: str = Form(...),
     task_id: str = Form(...),
-    image: UploadFile = File(...)
 ):
-    return await run_vqa(task_id, image, question)
+    try:
+        image_content = await image.read() if image else None
+        image_obj = Image.open(BytesIO(image_content)).convert("RGB") if image_content else None
+
+        result = process_vqa(task_id, image_obj, question)
+        return {"answer": result}
+    except Exception as e:
+        raise HTTPException(500, str(e))

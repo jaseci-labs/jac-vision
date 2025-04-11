@@ -131,7 +131,7 @@ def train_model(model_name: str, task_id: str):
                 bf16=is_bf16_supported(),
                 logging_steps=1,
                 optim="adamw_8bit",
-                output_dir=f"outputs/{task_id}",
+                #output_dir=f"outputs/{task_id}",
                 remove_unused_columns=False,
                 dataset_kwargs={"skip_prepare_dataset": True},
                 dataset_num_proc=4,
@@ -149,6 +149,22 @@ def train_model(model_name: str, task_id: str):
         stats = print_training_summary(trainer)
         log_history = trainer.state.log_history
 
+        print("[SAVING MODEL] Saving model and tokenizer.")
+        task_path = f"outputs/{task_id}"
+        model.save_pretrained(
+            task_path,
+            safe_serialization=True,
+            save_adapter=True,  # Critical for PEFT
+        )
+        tokenizer.save_pretrained(task_path)
+
+        # Merge and save final model
+        merged_model = model.merge_and_unload()
+        merged_model.save_pretrained(
+            os.path.join(task_path, "merged"),
+            safe_serialization=True
+        )
+
         task_status[task_id] = {
             "status": "COMPLETED",
             "progress": 100,
@@ -156,7 +172,7 @@ def train_model(model_name: str, task_id: str):
             "metrics": stats,
             "log_history": log_history,
         }
-        trained_models[task_id] = (model, tokenizer)
+        trained_models[task_id] = (merged_model, tokenizer)
 
     except Exception as e:
         task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}
