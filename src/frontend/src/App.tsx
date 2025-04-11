@@ -158,11 +158,11 @@ const App: React.FC = () => {
           <Toolbar />
           <List>
             {[
-              { text: 'Search for a Model', icon: <SearchIcon />, section: 'search' },
-              { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
-              { text: 'Models', icon: <ModelsIcon />, section: 'models' },
-              { text: 'Fine-Tune', icon: <FineTuneIcon />, section: 'fine-tune' },
+              // { text: 'Search for a Model', icon: <SearchIcon />, section: 'search' },
               { text: 'Image Captioning', icon: <ImageIcon />, section: 'image-captioning' }, // Added for Image Captioning
+              { text: 'Fine-Tune', icon: <FineTuneIcon />, section: 'fine-tune' },
+              { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
+              // { text: 'Models', icon: <ModelsIcon />, section: 'models' },
               { text: 'Developer', icon: <DeveloperIcon />, section: 'developer' },
               { text: 'Settings', icon: <SettingsIcon />, section: 'settings' },
             ].map((item) => (

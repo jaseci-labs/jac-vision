@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = "https://2yndm7nlsm0yd8-4000.proxy.runpod.net";
+export const API_URL = "https://owoxsmmqrd1woh-8000.proxy.runpod.net";
 
 // Define TypeScript interfaces for API responses
 export interface Model {
