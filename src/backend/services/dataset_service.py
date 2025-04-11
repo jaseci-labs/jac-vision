@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os
 import zipfile
 import asyncio
@@ -8,10 +9,13 @@ from typing import Optional
 
 import google.generativeai as genai
 import requests
-from fastapi import HTTPException, logger
+from fastapi import HTTPException
 from schemas.models import CaptionResponse
 from utils.image_utils import encode_image
 from typing import Dict, Any
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 3
 SITE_URL = "<YOUR_SITE_URL>"

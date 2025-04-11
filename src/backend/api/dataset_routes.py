@@ -1,13 +1,17 @@
 import json
+import logging
 import os
 import shutil
 import zipfile
 from io import BytesIO
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile, logger
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from schemas.models import AutoAnnotateRequest, CaptionRequest
 from services.dataset_service import auto_annotate_task, get_all_images, load_existing_data, process_image, auto_annotation_status
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
