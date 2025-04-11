@@ -1,8 +1,8 @@
 import base64
 import json
 import os
-import shutil
 import zipfile
+import asyncio
 from io import BytesIO
 from typing import Optional
 
@@ -165,3 +165,21 @@ def get_all_images():
                 if relative_path not in existing_paths:
                     image_files.append((image_path, relative_path))
     return image_files
+
+async def auto_annotate_task(api_key: str, api_type: str, model: str):
+    while True:
+        image_files = get_all_images()
+        if not image_files: break
+
+        image_path, relative_path = image_files[0]
+        try:
+            result = process_image(image_path, relative_path, api_key, api_type, model)
+            if result:
+                existing_data = load_existing_data()
+                existing_data.append({"image": relative_path, "caption": result.caption})
+                with open(json_file_path, "w") as f:
+                    json.dump(existing_data, f)
+        except Exception as e:
+            logger.error(f"Failed to process {relative_path}: {str(e)}")
+
+        await asyncio.sleep(1)  # Rate limiting

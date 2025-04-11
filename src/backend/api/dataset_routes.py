@@ -4,10 +4,10 @@ import shutil
 import zipfile
 from io import BytesIO
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, logger
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile, logger
 from fastapi.responses import FileResponse, StreamingResponse
-from schemas.models import CaptionRequest
-from services.dataset_service import get_all_images, load_existing_data, process_image
+from schemas.models import AutoAnnotateRequest, CaptionRequest
+from services.dataset_service import auto_annotate_task, get_all_images, load_existing_data, process_image
 
 router = APIRouter()
 
@@ -127,3 +127,16 @@ async def clear_data():
         shutil.rmtree(root_folder)
         os.makedirs(root_folder)
     return {"message": "All data cleared successfully"}
+
+@router.post("/auto-annotate")
+async def start_auto_annotate(
+    request: AutoAnnotateRequest,
+    background_tasks: BackgroundTasks
+):
+    background_tasks.add_task(
+        auto_annotate_task,
+        request.api_key,
+        request.api_type,
+        request.model
+    )
+    return {"message": "Auto annotation started"}
