@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
-import { Box, Button, TextField, Typography, CircularProgress } from '@mui/material';
+import { Box, Button, TextField, Typography, CircularProgress, IconButton } from '@mui/material';
+import { ThumbUp, ThumbDown } from '@mui/icons-material';
 import { fetchFineTunedModels, loadFineTunedModelForInference, inferenceWithFineTunedModel } from '../utils/api';
 import { ModelOption } from '../types';
 import { toast } from 'react-toastify';
@@ -76,11 +77,11 @@ const FineTunedVQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toa
     const extractAssistantResponse = (text: string) => {
         const match = text.match(/assistant\n([\s\S]*)$/);
         if (match) {
-          console.log('Extracted response:', match[1]);
-          return match[1].trim();
+            console.log('Extracted response:', match[1]);
+            return match[1].trim();
         }
         return text.trim();
-      };
+    };
 
     const handleVqa = async () => {
         if (!vqaQuestion || !selectedModel) {
@@ -131,6 +132,10 @@ const FineTunedVQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toa
             setRunModelLoading(false);
         }
     };
+
+    const handleFeedback = (type: 'up' | 'down') => {
+        console.log('Feedback given:', type);
+      };
 
     return (
         <Box
@@ -309,11 +314,29 @@ const FineTunedVQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toa
                     <Typography variant="h6" sx={{ color: '#E2E8F0', mb: 1 }}>
                         Response
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#A5B4FC', fontWeight: 500 }}>
+                    <Typography variant="body1" sx={{ color: '#A5B4FC', fontWeight: 500, mb: 2 }}>
                         {vqaAnswer}
                     </Typography>
+
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                        <IconButton
+                            onClick={() => handleFeedback('up')}
+                            sx={{ color: 'lightgreen' }}
+                            aria-label="thumbs up"
+                        >
+                            <ThumbUp />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => handleFeedback('down')}
+                            sx={{ color: 'tomato' }}
+                            aria-label="thumbs down"
+                        >
+                            <ThumbDown />
+                        </IconButton>
+                    </Box>
                 </Box>
             )}
+
         </Box>
     );
 };

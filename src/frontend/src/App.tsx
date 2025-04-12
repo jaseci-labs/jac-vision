@@ -28,7 +28,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import FineTune from './components/FineTune';
-import VQA from './components/VQA';
+// import VQA from './components/VQA';
 import Search from './components/Search';
 import Models from './components/Models';
 import Developer from './components/Developer';
@@ -39,7 +39,7 @@ import './styles/App.css';
 import FineTunedVQA from './components/FineTunedVQA';
 
 const App: React.FC = () => {
-  const [selectedSection, setSelectedSection] = useState<string>('fine-tune');
+  const [selectedSection, setSelectedSection] = useState<string>('image-captioning');
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('dark');
   const [drawerOpen, setDrawerOpen] = useState(true);
