@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
+  Stack,
   Box,
   Button,
   TextField,
@@ -63,11 +64,15 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
   const [jsonData, setJsonData] = useState<any>(null);
   const [showJsonPreview, setShowJsonPreview] = useState<boolean>(false);
   const [openClearDialog, setOpenClearDialog] = useState<boolean>(false);
+  const [apiDialogOpen, setApiDialogOpen] = useState(false);
 
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
   const openRouterModels = [
-    { value: "google/gemma-3-12b-it:free", label: "Google Gemma 3 12B (Free)" },
+    {
+      value: "google/gemma-3-12b-it:free",
+      label: "Google Gemma 3 12B (Free)"
+    },
     {
       value: "meta-llama/llama-3.1-8b-instruct:free",
       label: "Meta LLaMA 3.1 8B (Free)",
@@ -75,14 +80,12 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
   ];
 
   useEffect(() => {
-    if (imageData) {
-      console.log("Selected file:", imageData.image_path);
-    }
-  }, [imageData]);
-
-  useEffect(() => {
     localStorage.setItem("captionApiKey", apiKey);
   }, [apiKey]);
+
+  const handleSaveApiKey = () => {
+    setApiDialogOpen(false);
+  };
 
   const validateApiKey = (key: string): boolean => {
     return key.trim().length > 10;
@@ -283,54 +286,34 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
         width: "100%",
       }}
     >
-      <Typography
-        variant="h6"
-        sx={{ fontWeight: 600, mb: 2, textAlign: { xs: "center", sm: "left" } }}
-      >
-        Automatic Image Captioning
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+        <Typography
+          variant="h6"
+          sx={{ fontWeight: 600, mb: { xs: 1, sm: 0 }, textAlign: { xs: "center", sm: "left" } }}
+        >
+          Automatic Image Captioning
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setApiDialogOpen(true)}
+            sx={{
+              borderColor: "#3B82F6",
+              color: "#3B82F6",
+              "&:hover": {
+                borderColor: "#2563EB",
+                color: "#2563EB",
+              },
+              textTransform: "none",
+              fontWeight: 500,
+            }}
+          >
+            API Key
+          </Button>
+        </Box>
+      </Box>
+
       <Box sx={{ mb: 3 }}>
-        <TextField
-          label="API Key"
-          type={showApiKey ? "text" : "password"}
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          fullWidth
-          margin="normal"
-          variant="outlined"
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  edge="end"
-                >
-                  {showApiKey ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            mb: 2,
-            "& .MuiOutlinedInput-root": {
-              "& fieldset": {
-                borderColor: "#4B5563",
-              },
-              "&:hover fieldset": {
-                borderColor: "#5B21B6",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "#5B21B6",
-              },
-            },
-            "& .MuiInputLabel-root": {
-              color: "#9CA3AF",
-            },
-            "& .MuiInputBase-input": {
-              color: "#E2E8F0",
-            },
-          }}
-        />
         <FormControl fullWidth sx={{ mb: 2 }}>
           <InputLabel sx={{ color: "#9CA3AF" }}>API Type</InputLabel>
           <MuiSelect
@@ -411,6 +394,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
         <Typography variant="body2" sx={{ color: "#E2E8F0", mb: 1 }}>
           Upload Image Folder (ZIP file, max 50 MB):
         </Typography>
+
         <input
           type="file"
           accept=".zip"
@@ -425,119 +409,129 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
             }
           }}
           style={{
-            margin: "20px 0",
+            margin: "10px 0",
             color: "#E2E8F0",
             width: "100%",
             display: "block",
           }}
         />
-        <Button
-          variant="contained"
-          onClick={handleUploadFolder}
-          disabled={uploadLoading}
-          sx={{
-            mb: 2,
-            backgroundColor: "#5B21B6",
-            "&:hover": {
-              backgroundColor: "#8B5CF6",
-              transform: "scale(1.05)",
-              transition: "all 0.2s ease-in-out",
-            },
-            borderRadius: "8px",
-            textTransform: "none",
-            fontWeight: 500,
-            width: { xs: "100%", sm: "auto" },
-          }}
+
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
+          flexWrap="wrap"
+          useFlexGap
+          sx={{ mt: 2 }}
         >
-          {uploadLoading ? <CircularProgress size={24} /> : "Upload Folder"}
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleDownloadJson}
-          disabled={downloadLoading}
-          sx={{
-            mb: 2,
-            backgroundColor: "#FF9800",
-            "&:hover": {
-              backgroundColor: "#F57C00",
-              transform: "scale(1.05)",
-              transition: "all 0.2s ease-in-out",
-            },
-            borderRadius: "8px",
-            textTransform: "none",
-            fontWeight: 500,
-            width: { xs: "100%", sm: "auto" },
-            ml: { sm: 2 },
-          }}
-        >
-          {downloadLoading ? <CircularProgress size={24} /> : "Download JSON"}
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleDownloadDataset}
-          disabled={downloadLoading}
-          sx={{
-            mb: 2,
-            backgroundColor: "#FF5722",
-            "&:hover": {
-              backgroundColor: "#E64A19",
-              transform: "scale(1.05)",
-              transition: "all 0.2s ease-in-out",
-            },
-            borderRadius: "8px",
-            textTransform: "none",
-            fontWeight: 500,
-            width: { xs: "100%", sm: "auto" },
-            ml: { sm: 2 },
-          }}
-        >
-          {downloadLoading ? (
-            <CircularProgress size={24} />
-          ) : (
-            "Download Dataset (JSON + Images)"
-          )}
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={handlePreviewJson}
-          sx={{
-            mb: 2,
-            borderColor: "#2196F3",
-            color: "#2196F3",
-            "&:hover": {
-              borderColor: "#1976D2",
-              color: "#1976D2",
-            },
-            borderRadius: "8px",
-            textTransform: "none",
-            fontWeight: 500,
-            width: { xs: "100%", sm: "auto" },
-            ml: { sm: 2 },
-          }}
-        >
-          Preview JSON
-        </Button>
-        <Button
-          variant="contained"
-          onClick={() => setOpenClearDialog(true)}
-          sx={{
-            mb: 2,
-            backgroundColor: "#EF5350",
-            "&:hover": {
-              backgroundColor: "#F44336",
-              transform: "scale(1.05)",
-              transition: "all 0.2s ease-in-out",
-            },
-            borderRadius: "8px",
-            textTransform: "none",
-            fontWeight: 500,
-            width: { xs: "100%", sm: "auto" },
-            ml: { sm: 2 },
-          }}
-        >
-          Clear Data
-        </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleUploadFolder}
+            disabled={uploadLoading}
+            sx={{
+              backgroundColor: "#5B21B6",
+              "&:hover": {
+                backgroundColor: "#8B5CF6",
+                transform: "scale(1.03)",
+                transition: "all 0.2s ease-in-out",
+              },
+              borderRadius: "8px",
+              textTransform: "none",
+              fontWeight: 500,
+              px: 2,
+            }}
+          >
+            {uploadLoading ? <CircularProgress size={18} /> : "Upload Folder"}
+          </Button>
+
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleDownloadJson}
+            disabled={downloadLoading}
+            sx={{
+              backgroundColor: "#FF9800",
+              "&:hover": {
+                backgroundColor: "#F57C00",
+                transform: "scale(1.03)",
+                transition: "all 0.2s ease-in-out",
+              },
+              borderRadius: "8px",
+              textTransform: "none",
+              fontWeight: 500,
+              px: 2,
+            }}
+          >
+            {downloadLoading ? <CircularProgress size={18} /> : "Download JSON"}
+          </Button>
+
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleDownloadDataset}
+            disabled={downloadLoading}
+            sx={{
+              backgroundColor: "#FF5722",
+              "&:hover": {
+                backgroundColor: "#E64A19",
+                transform: "scale(1.03)",
+                transition: "all 0.2s ease-in-out",
+              },
+              borderRadius: "8px",
+              textTransform: "none",
+              fontWeight: 500,
+              px: 2,
+            }}
+          >
+            {downloadLoading ? (
+              <CircularProgress size={18} />
+            ) : (
+              "Download Dataset"
+            )}
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handlePreviewJson}
+            sx={{
+              borderColor: "#2196F3",
+              color: "#2196F3",
+              "&:hover": {
+                borderColor: "#1976D2",
+                color: "#1976D2",
+              },
+              borderRadius: "8px",
+              textTransform: "none",
+              fontWeight: 500,
+              px: 2,
+            }}
+          >
+            Preview JSON
+          </Button>
+
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => setOpenClearDialog(true)}
+            sx={{
+              backgroundColor: "#EF5350",
+              "&:hover": {
+                backgroundColor: "#F44336",
+                transform: "scale(1.03)",
+                transition: "all 0.2s ease-in-out",
+              },
+              borderRadius: "8px",
+              textTransform: "none",
+              fontWeight: 500,
+              px: 2,
+            }}
+          >
+            Clear Data
+          </Button>
+        </Stack>
       </Box>
+
       {error && (
         <Typography
           variant="body1"
@@ -558,7 +552,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
               src={`${API_URL}/api/datasets/images/${imageData.image_path}`}
               alt="Car Image"
               style={{
-                maxWidth: "100%",
+                maxWidth: "300px",
                 height: "auto",
                 border: "2px solid #ddd",
                 borderRadius: "4px",
@@ -570,7 +564,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             multiline
-            rows={10}
+            rows={6}
             fullWidth
             margin="normal"
             variant="outlined"
@@ -671,6 +665,69 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
           </Button>
           <Button onClick={handleClearData} color="error" autoFocus>
             Clear
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* API Key Dialog */}
+      <Dialog
+        open={apiDialogOpen}
+        onClose={() => setApiDialogOpen(false)}
+        maxWidth="sm" // You can try "sm", "md", or even false for full control
+        fullWidth
+        PaperProps={{
+          sx: {
+            width: '500px', // You can adjust this value (e.g., 550px, 600px)
+            maxWidth: '90%',
+          },
+        }}
+      >
+        <DialogTitle>Enter API Key</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="API Key"
+            type={showApiKey ? "text" : "password"}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            fullWidth
+            variant="outlined"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowApiKey(!showApiKey)} edge="end">
+                    {showApiKey ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              mt: 1,
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: "#4B5563",
+                },
+                "&:hover fieldset": {
+                  borderColor: "#5B21B6",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#5B21B6",
+                },
+              },
+              "& .MuiInputLabel-root": {
+                color: "#9CA3AF",
+              },
+              "& .MuiInputBase-input": {
+                color: "#E2E8F0",
+              },
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setApiDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={handleSaveApiKey} variant="contained" color="primary">
+            Save
           </Button>
         </DialogActions>
       </Dialog>

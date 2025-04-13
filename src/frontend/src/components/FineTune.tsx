@@ -30,7 +30,7 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
 }
 
 const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, toast }) => {
-  const [datasetLink, setDatasetLink] = useState<string>('');
+  const [datasetLink, setDatasetLink] = useState<string>('Car Damage Datatset');
   const [fineTuneStatus, setFineTuneStatus] = useState<string>('');
   const [fineTuneLoading, setFineTuneLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -71,7 +71,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
 
 
   useEffect(() => {
-    if (!taskId) return; // Don't start polling if taskId is not set
+    if (!taskId) return;
 
     const intervalId = setInterval(async () => {
       const taskStatus = await getTaskStatus(taskId);
@@ -192,7 +192,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         Fine-Tune Your Model
       </Typography>
 
-      <Typography
+      {/* <Typography
         variant="body1"
         sx={{
           mb: 4,
@@ -203,7 +203,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         }}
       >
         Configure your model with the following parameters and start the fine-tuning process. Each setting helps improve the model's performance based on your dataset and goals.
-      </Typography>
+      </Typography> */}
 
       <Box
         sx={{
@@ -215,7 +215,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           alignItems: 'center',
         }}
       >
-        <Box sx={{ flex: 1 }}>
+        {/* <Box sx={{ flex: 1 }}>
           <Select
             options={modelOptions}
             onChange={(option) => setSelectedModel(option?.value || null)}
@@ -242,12 +242,30 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
               }),
             }}
           />
-        </Box>
+        </Box> */}
+        
+        <TextField
+          label="Select Model"
+          value={selectedModel}
+          // onChange={(e) => setDatasetLink(e.target.value)}
+          variant="outlined"
+          fullWidth
+          sx={{
+            flex: 1,
+            '& .MuiOutlinedInput-root': {
+              height: '56px',
+              '& fieldset': { borderColor: '#4B5563' },
+              '&:hover fieldset': { borderColor: '#5B21B6' },
+              '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
+            },
+            '& .MuiInputLabel-root': { color: '#9CA3AF' },
+            '& .MuiInputBase-input': { color: '#E2E8F0' },
+          }}
+        />
 
         <TextField
           label="Dataset Link"
-          value="Car Damage Datatset"
-          // value={datasetLink}
+          value={datasetLink}
           onChange={(e) => setDatasetLink(e.target.value)}
           variant="outlined"
           fullWidth

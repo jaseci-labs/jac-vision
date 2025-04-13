@@ -31,7 +31,8 @@ import FineTune from './components/FineTune';
 // import VQA from './components/VQA';
 import Search from './components/Search';
 import Models from './components/Models';
-import Developer from './components/Developer';
+// import Developer from './components/Developer';
+import Analysis from './components/Analysis';
 import Settings from './components/Settings';
 import ImageCaptioning from './components/ImageCaptioning'; // Added for Image Captioning
 import logo from './assets/logo.png';
@@ -79,15 +80,15 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (selectedSection) {
       case 'fine-tune':
-        return <FineTune selectedModel={selectedModel} setSelectedModel={setSelectedModel} toast={toast} />;
+        return <FineTune selectedModel="unsloth/Qwen2-VL-2B-Instruct-bnb-4bit" setSelectedModel={setSelectedModel} toast={toast} />;
       case 'vqa':
         return <FineTunedVQA selectedModel={selectedModel} setSelectedModel={setSelectedModel} toast={toast} />;
       case 'search':
         return <Search toast={toast} themeMode={themeMode} />;
       case 'models':
         return <Models toast={toast} themeMode={themeMode} />;
-      case 'developer':
-        return <Developer themeMode={themeMode} />;
+      case 'analysis':
+        return <Analysis themeMode={themeMode} />;
       case 'settings':
         return <Settings themeMode={themeMode} setThemeMode={setThemeMode} />;
       case 'image-captioning': // Added for Image Captioning
@@ -165,7 +166,7 @@ const App: React.FC = () => {
               { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
               // { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
               // { text: 'Models', icon: <ModelsIcon />, section: 'models' },
-              { text: 'Developer', icon: <DeveloperIcon />, section: 'developer' },
+              { text: 'Analysis', icon: <DeveloperIcon />, section: 'analysis' },
               { text: 'Settings', icon: <SettingsIcon />, section: 'settings' },
             ].map((item) => (
               <ListItemButton

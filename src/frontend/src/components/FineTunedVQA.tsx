@@ -147,9 +147,10 @@ const FineTunedVQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toa
                 width: '100%',
             }}
         >
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, textAlign: { xs: 'center', sm: 'left' } }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, textAlign: { xs: 'center', sm: 'left' } }}>
                 Visual Question Answering
             </Typography>
+            <Typography sx={{ mb: 2, textAlign: { xs: 'center', sm: 'left' } }}>(Important: Select the model and click Load Model button before inferencing the model.)</Typography>
             <Box
                 sx={{
                     display: 'flex',
