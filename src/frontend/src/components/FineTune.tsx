@@ -112,38 +112,6 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     return () => clearInterval(intervalId);
   }, [taskId]);
 
-  const customStyles = {
-    control: (provided: any, state: any) => ({
-      ...provided,
-      backgroundColor: state.isFocused ? '#2D3748' : '#1E293B',
-      borderColor: state.isFocused ? '#5B21B6' : '#4B5563',
-      boxShadow: state.isFocused ? '0 0 5px #5B21B6' : 'none',
-      '&:hover': {
-        borderColor: '#5B21B6',
-      },
-    }),
-    menu: (provided: any) => ({
-      ...provided,
-      backgroundColor: '#1E293B',
-    }),
-    option: (provided: any, state: any) => ({
-      ...provided,
-      backgroundColor: state.isSelected ? '#5B21B6' : state.isFocused ? '#2D3748' : '#1E293B',
-      color: '#E2E8F0',
-      '&:hover': {
-        backgroundColor: '#2D3748',
-      },
-    }),
-    singleValue: (provided: any) => ({
-      ...provided,
-      color: '#E2E8F0',
-    }),
-    placeholder: (provided: any) => ({
-      ...provided,
-      color: '#9CA3AF',
-    }),
-  };
-
   const handleFinetune = async () => {
     if (!selectedModel || !datasetLink) {
       setError('Please select a model and provide a dataset link.');

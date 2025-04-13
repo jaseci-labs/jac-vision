@@ -5,7 +5,7 @@ import shutil
 import zipfile
 from io import BytesIO
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile, Form
 from fastapi.responses import FileResponse, StreamingResponse
 from schemas.models import AutoAnnotateRequest, CaptionRequest
 from services.dataset_service import auto_annotate_task, get_all_images, load_existing_data, process_image, auto_annotation_status
@@ -26,13 +26,17 @@ def save_json(data):
 
 
 @router.post("/upload-image-folder")
-async def upload_image_folder(file: UploadFile = File(...)):
-    if not file.filename.endswith(".zip"):
+async def upload_image_folder(file: UploadFile = File(...), folder_name: str = Form(...)):
+    safe_folder_name = folder_name.strip().lower().replace(" ", "_")
+
+    if safe_folder_name == "":
+        raise HTTPException(status_code=400, detail="Folder name cannot be empty")
+    elif not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="File must be a ZIP file")
 
-    upload_dir = "datasets/CarDataset"
+    upload_dir = os.path.join("datasets", safe_folder_name)
     if os.path.exists(upload_dir):
-        shutil.rmtree(upload_dir)
+        raise HTTPException(status_code=400, detail="Folder already exists")
     os.makedirs(upload_dir)
     zip_path = os.path.join(upload_dir, "uploaded.zip")
     try:
@@ -46,7 +50,8 @@ async def upload_image_folder(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        os.remove(zip_path)
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
     return {"message": "Image folder uploaded successfully"}
 
 

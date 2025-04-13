@@ -58,6 +58,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
   const [uploadLoading, setUploadLoading] = useState<boolean>(false);
   const [downloadLoading, setDownloadLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [datasetName, setDatasetName] = useState<string>("");
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [caption, setCaption] = useState<string>("");
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
@@ -119,6 +120,11 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
   };
 
   const handleUploadFolder = async () => {
+    if (!datasetName.trim()) {
+      setError("Please enter a dataset name.");
+      toast.error("Please enter a dataset name.");
+      return;
+    }
     if (!imageFolder) {
       setError("Please select an image folder to upload.");
       toast.error("Please select an image folder to upload.");
@@ -134,13 +140,12 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       toast.error("Invalid API key. Please enter a valid key.");
       return;
     }
-    console.log("imageFolder:", imageFolder);
-    console.log("imageFolder type:", imageFolder instanceof File);
     setUploadLoading(true);
     setError("");
     try {
       const formData = new FormData();
       formData.append("file", imageFolder);
+      formData.append("datasetName", datasetName.trim());
       logFormData(formData);
       const response = await uploadImageFolder(formData);
       toast.success(response.message);
@@ -314,33 +319,69 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       </Box>
 
       <Box sx={{ mb: 3 }}>
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel sx={{ color: "#9CA3AF" }}>API Type</InputLabel>
-          <MuiSelect
-            value={apiType}
-            onChange={(e) =>
-              setApiType(e.target.value as "openrouter" | "openai" | "gemini")
-            }
+        {/* Row with API Type & Test Button */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+            mb: 2,
+          }}
+        >
+          {/* API Type Selector */}
+          <FormControl sx={{ flex: 1 }}>
+            <InputLabel sx={{ color: "#9CA3AF" }}>API Type</InputLabel>
+            <MuiSelect
+              value={apiType}
+              onChange={(e) =>
+                setApiType(e.target.value as "openrouter" | "openai" | "gemini")
+              }
+              sx={{
+                "& .MuiSelect-select": {
+                  color: "#E2E8F0",
+                },
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#4B5563",
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#5B21B6",
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#5B21B6",
+                },
+              }}
+            >
+              <MenuItem value="openrouter">OpenRouter</MenuItem>
+              <MenuItem value="openai">OpenAI</MenuItem>
+              <MenuItem value="gemini">Gemini</MenuItem>
+            </MuiSelect>
+          </FormControl>
+
+          {/* Test API Key Button */}
+          <Button
+            variant="outlined"
+            onClick={handleTestApiKey}
+            disabled={testApiKeyLoading}
             sx={{
-              "& .MuiSelect-select": {
-                color: "#E2E8F0",
+              alignSelf: { xs: "stretch", md: "center" },
+              whiteSpace: "nowrap",
+              borderColor: "#3B82F6",
+              color: "#3B82F6",
+              "&:hover": {
+                borderColor: "#2563EB",
+                color: "#2563EB",
               },
-              "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: "#4B5563",
-              },
-              "&:hover .MuiOutlinedInput-notchedOutline": {
-                borderColor: "#5B21B6",
-              },
-              "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                borderColor: "#5B21B6",
-              },
+              borderRadius: "8px",
+              textTransform: "none",
+              fontWeight: 500,
+              height: "56px", // Match typical input height
             }}
           >
-            <MenuItem value="openrouter">OpenRouter</MenuItem>
-            <MenuItem value="openai">OpenAI</MenuItem>
-            <MenuItem value="gemini">Gemini</MenuItem>
-          </MuiSelect>
-        </FormControl>
+            {testApiKeyLoading ? <CircularProgress size={20} /> : "Test API Key"}
+          </Button>
+        </Box>
+
+        {/* OpenRouter Model Selector */}
         {apiType === "openrouter" && (
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel sx={{ color: "#9CA3AF" }}>OpenRouter Model</InputLabel>
@@ -370,26 +411,26 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
             </MuiSelect>
           </FormControl>
         )}
-        <Button
+
+        <TextField
+          fullWidth
           variant="outlined"
-          onClick={handleTestApiKey}
-          disabled={testApiKeyLoading}
+          label="Dataset Name"
+          placeholder="Enter the Dataset Name"
+          value={datasetName}
+          onChange={(e) => setDatasetName(e.target.value)}
           sx={{
-            mb: 2,
-            borderColor: "#3B82F6",
-            color: "#3B82F6",
-            "&:hover": {
-              borderColor: "#2563EB",
-              color: "#2563EB",
+            input: { color: "#E2E8F0" },
+            label: { color: "#9CA3AF" },
+            "& .MuiOutlinedInput-root": {
+              "& fieldset": { borderColor: "#4B5563" },
+              "&:hover fieldset": { borderColor: "#5B21B6" },
+              "&.Mui-focused fieldset": { borderColor: "#5B21B6" },
             },
-            borderRadius: "8px",
-            textTransform: "none",
-            fontWeight: 500,
           }}
-        >
-          {testApiKeyLoading ? <CircularProgress size={20} /> : "Test API Key"}
-        </Button>
+        />
       </Box>
+
       <Box sx={{ mb: 2 }}>
         <Typography variant="body2" sx={{ color: "#E2E8F0", mb: 1 }}>
           Upload Image Folder (ZIP file, max 50 MB):
