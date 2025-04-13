@@ -74,6 +74,18 @@ class ProgressCallback(TrainerCallback):
     def on_train_end(self, args, state, control, **kwargs):
         task_status[self.task_id].update({"status": "COMPLETED", "progress": 100})
 
+def retreive_captioned_dataset():
+    dataset_dir = "datasets"
+    try:
+        if not os.path.exists(dataset_dir):
+            return HTTPException(status_code=404, content={"message": "Dataset directory not found."})
+        folder_names = [
+            name for name in os.listdir(dataset_dir)
+            if os.path.isdir(os.path.join(dataset_dir, name))
+        ]
+        return {"datasets": folder_names}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Dataset loading failed")
 
 def train_model(model_name: str, task_id: str):
     if model_name not in AVAILABLE_MODELS:

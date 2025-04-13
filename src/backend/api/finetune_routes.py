@@ -17,6 +17,7 @@ from services.training import (
     train_model,
     train_model_with_goal,
     trained_models,
+    retreive_captioned_dataset
 )
 
 router = APIRouter()
@@ -26,6 +27,10 @@ router = APIRouter()
 def get_models():
     return {"models": AVAILABLE_MODELS}
 
+@router.get("/datasets")
+def get_captioned_datasets():
+    return retreive_captioned_dataset()
+    
 
 @router.post("/start-finetuning")
 async def start_finetuning(
