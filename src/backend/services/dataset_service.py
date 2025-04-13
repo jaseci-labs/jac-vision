@@ -21,8 +21,8 @@ MAX_RETRIES = 3
 SITE_URL = "<YOUR_SITE_URL>"
 SITE_NAME = "<YOUR_SITE_NAME>"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-root_folder = "datasets/CarDataset"
-json_file_path = "jsons/car_damage_data.json"
+# root_folder = "datasets/CarDataset"
+# json_file_path = "jsons/car_damage_data.json"
 
 auto_annotation_status: Dict[str, Any] = {
     "running": False,
@@ -34,9 +34,10 @@ auto_annotation_status: Dict[str, Any] = {
 }
 
 
-def load_existing_data():
-    if os.path.exists(json_file_path):
+def load_existing_data(file_path: str):
+    if os.path.exists(file_path):
         try:
+            json_file_path = os.path.join("jsons", file_path)
             with open(json_file_path, "r") as file:
                 content = file.read().strip()
                 return json.loads(content) if content else []
@@ -164,16 +165,16 @@ def process_image(
             return None
 
 
-def get_all_images():
+def get_all_images(dataset_path):
     image_extensions = (".jpg", ".jpeg", ".png")
-    existing_data = load_existing_data()
+    existing_data = load_existing_data(dataset_path)
     existing_paths = {entry["image"] for entry in existing_data}
     image_files = []
-    for folder_name, _, files in os.walk(root_folder):
+    for folder_name, _, files in os.walk(dataset_path):
         for file in files:
             if file.lower().endswith(image_extensions):
                 image_path = os.path.join(folder_name, file)
-                relative_path = os.path.relpath(image_path, root_folder).replace(
+                relative_path = os.path.relpath(image_path, dataset_path).replace(
                     "\\", "/"
                 )
                 if relative_path not in existing_paths:

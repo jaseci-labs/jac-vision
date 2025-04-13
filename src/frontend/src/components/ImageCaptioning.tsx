@@ -145,7 +145,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
     try {
       const formData = new FormData();
       formData.append("file", imageFolder);
-      formData.append("datasetName", datasetName.trim());
+      formData.append("folder_name", datasetName.trim());
       logFormData(formData);
       const response = await uploadImageFolder(formData);
       toast.success(response.message);

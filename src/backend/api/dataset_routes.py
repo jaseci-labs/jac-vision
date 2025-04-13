@@ -15,11 +15,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-json_file_path = "jsons/car_damage_data.json"
-root_folder = "datasets/CarDataset"
+# json_file_path = "jsons/car_damage_data.json"
+# root_folder = "datasets/CarDataset"
 
-
-def save_json(data):
+def save_json(json_file_name, data):
+    if not os.path.exists(os.path.dirname(json_file_name)):
+        os.makedirs(os.path.dirname(json_file_name))
+    json_file_path = os.path.join("jsons", json_file_name)
     with open(json_file_path, "w") as json_file:
         json.dump(data, json_file, indent=4)
     logger.info(f"JSON updated at {json_file_path}")
@@ -52,18 +54,22 @@ async def upload_image_folder(file: UploadFile = File(...), folder_name: str = F
     finally:
         if os.path.exists(zip_path):
             os.remove(zip_path)
-    return {"message": "Image folder uploaded successfully"}
+    return {
+        "message": "Image folder uploaded successfully",
+        "folder_name": safe_folder_name,
+        }
 
 
 @router.get("/get-next-image")
 async def get_next_image(
+    dataset_path: str,
     api_key: str = "",
     api_type: str = "openrouter",
     model: str = "google/gemma-3-12b-it:free",
 ):
     if not api_key:
         raise HTTPException(status_code=400, detail="API key is required")
-    image_files = get_all_images()
+    image_files = get_all_images(dataset_path)
     if not image_files:
         return {"done": True, "message": "All images have been processed!"}
     image_path, relative_path = image_files[0]
@@ -78,8 +84,9 @@ async def get_next_image(
 
 
 @router.post("/save-caption")
-async def save_caption(request: CaptionRequest):
+async def save_caption(request: CaptionRequest, file_path: str):
     existing_data = []
+    json_file_path = os.path.join("jsons", file_path)
     if os.path.exists(json_file_path):
         with open(json_file_path, "r") as f:
             existing_data = json.load(f)
@@ -90,7 +97,8 @@ async def save_caption(request: CaptionRequest):
 
 
 @router.get("/download-dataset")
-async def download_dataset():
+async def download_dataset(file_path: str):
+    json_file_path = os.path.join("jsons", file_path)
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w") as zip_file:
         if os.path.exists(json_file_path):
@@ -107,7 +115,8 @@ async def download_dataset():
 
 
 @router.get("/download-json")
-async def download_json():
+async def download_json(file_path: str):
+    json_file_path = os.path.join("jsons", file_path)
     if not os.path.exists(json_file_path):
         raise HTTPException(status_code=404, detail="JSON file not found")
     return FileResponse(
@@ -116,7 +125,8 @@ async def download_json():
 
 
 @router.get("/images/{filename:path}")
-async def serve_image(filename: str):
+async def serve_image(filename: str, file_path: str = ""):
+    root_folder = os.path.join("datasets", file_path)
     file_path = os.path.join(root_folder, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Image not found")
@@ -129,7 +139,9 @@ async def get_json():
 
 
 @router.delete("/clear-data")
-async def clear_data():
+async def clear_data(file_path: str = ""):
+    root_folder = os.path.join("datasets", file_path)
+    json_file_path = os.path.join("jsons", file_path)
     if os.path.exists(json_file_path):
         os.remove(json_file_path)
     if os.path.exists(root_folder):
