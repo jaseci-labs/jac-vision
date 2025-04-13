@@ -31,10 +31,6 @@ AVAILABLE_MODELS = [
 task_status = {}
 trained_models = {}
 
-json_file_path = "jsons/car_damage_data.json"
-root_folder = "datasets/CarDataset"
-
-
 class ProgressCallback(TrainerCallback):
     def __init__(self, task_id: str, total_steps: int):
         self.task_id = task_id
@@ -87,13 +83,16 @@ def retreive_captioned_dataset():
     except Exception as e:
         raise HTTPException(status_code=500, detail="Dataset loading failed")
 
-def train_model(model_name: str, task_id: str):
+def train_model(model_name: str, task_id: str, dataset_path: str):
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
-
+    json_file_path = os.path.join("jsons", dataset_path)
+    root_folder = os.path.join("datasets", dataset_path)
+    if not os.path.exists(json_file_path) or not os.path.exists(root_folder):
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
     task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
     converted_dataset = get_custom_dataset(json_file_path, root_folder)
-    print(f"[TRAIN START] Task ID: {task_id}")
 
     try:
         model, tokenizer = FastVisionModel.from_pretrained(

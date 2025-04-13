@@ -107,9 +107,9 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
     setTestApiKeyLoading(true);
     setError("");
     try {
-      await getNextImage(apiKey, apiType, openRouterModel);
+      await getNextImage(localStorage.getItem("datasetName") || "", apiKey, apiType, openRouterModel);
       toast.success("API key is valid!");
-    } catch (error: any) {
+    } catch (error: any) {``
       const errorMessage =
         error.message || "Invalid API key. Check the console.";
       setError(errorMessage);
@@ -149,7 +149,8 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       logFormData(formData);
       const response = await uploadImageFolder(formData);
       toast.success(response.message);
-      fetchNextImage();
+      localStorage.setItem("datasetName", response.folder_name);
+      fetchNextImage(response.folder_name);
     } catch (error: any) {
       const errorMessage =
         error.message || "Error uploading image folder. Check the console.";
@@ -160,9 +161,9 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
     setUploadLoading(false);
   };
 
-  const fetchNextImage = async () => {
+  const fetchNextImage = async (folder_name: string) => {
     try {
-      const data = await getNextImage(apiKey, apiType, openRouterModel);
+      const data = await getNextImage(folder_name, apiKey, apiType, openRouterModel);
       if (data.done) {
         setImageData(null);
         toast.success(data.message);
@@ -188,9 +189,9 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
     setSaveLoading(true);
     setError("");
     try {
-      await saveCaption({ caption, image_path: imageData.image_path });
+      await saveCaption({ caption, image_path: imageData.image_path, dataset_path: localStorage.getItem("datasetName") || "" });
       toast.success("Caption saved successfully");
-      fetchNextImage();
+      fetchNextImage(localStorage.getItem("datasetName") || "");
     } catch (error: any) {
       const errorMessage =
         error.message || "Error saving caption. Check the console.";
@@ -590,7 +591,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
           </Typography>
           <Box sx={{ mb: 2, textAlign: "center" }}>
             <img
-              src={`${API_URL}/api/datasets/images/${imageData.image_path}`}
+              src={`${API_URL}/api/datasets/images/${localStorage.getItem("datasetName") || ""}/${imageData.image_path}`}
               alt="Car Image"
               style={{
                 maxWidth: "300px",

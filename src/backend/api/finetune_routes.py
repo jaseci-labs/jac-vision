@@ -37,7 +37,7 @@ async def start_finetuning(
     request: FineTuningRequest, background_tasks: BackgroundTasks
 ):
     task_id = str(uuid.uuid4())
-    background_tasks.add_task(train_model, request.model_name, task_id)
+    background_tasks.add_task(train_model, model=request.model_name, task_id=task_id, dataset_path=request.dataset_path)
     return {"task_id": task_id, "status": "STARTED"}
 
 

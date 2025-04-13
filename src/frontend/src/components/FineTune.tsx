@@ -3,7 +3,7 @@ import Select from 'react-select';
 import { Box, Button, TextField, Typography, CircularProgress, Accordion, AccordionSummary, AccordionDetails, Table, TableHead, TableRow, TableBody, TableCell } from '@mui/material';
 import LinearProgress, { LinearProgressProps } from '@mui/material/LinearProgress';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { finetuneModel, fetchModels, getTaskStatus } from '../utils/api';
+import { finetuneModel, fetchModels, getTaskStatus, fetchDatasets } from '../utils/api';
 import { ModelOption } from '../types';
 import { toast } from 'react-toastify';
 
@@ -30,11 +30,12 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
 }
 
 const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, toast }) => {
-  const [datasetLink, setDatasetLink] = useState<string>('Car Damage Datatset');
+  const [datasetLink, setDatasetLink] = useState<string>('');
   const [fineTuneStatus, setFineTuneStatus] = useState<string>('');
   const [fineTuneLoading, setFineTuneLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
+  const [datasetOptions, setDatasetOptions] = useState<ModelOption[]>([]);
 
   const [taskId, setTaskId] = useState<string>('');
   const [viewprogress, setViewProgress] = useState<number>(0);
@@ -65,8 +66,26 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     }
   };
 
+  const loadDatasets = async () => {
+    try {
+      const response = await fetchDatasets();
+      const datasets = response.datasets || [];
+      const options = datasets.map((dataset: string) => ({
+        value: dataset,
+        label: dataset,
+      }));
+      setDatasetOptions(options);
+    } catch (error: any) {
+      const errorMessage = error.message || 'Error loading datasets. Check the console.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      console.error(error);
+    }
+  };
+
   useEffect(() => {
     loadModels();
+    loadDatasets();
   }, []);
 
 
@@ -183,14 +202,36 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           alignItems: 'center',
         }}
       >
-        {/* <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1 }}>
+          <TextField
+            label="Select Model"
+            value={selectedModel}
+            variant="outlined"
+            fullWidth
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                height: '56px',
+                '& fieldset': { borderColor: '#4B5563' },
+                '&:hover fieldset': { borderColor: '#5B21B6' },
+                '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
+              },
+              '& .MuiInputLabel-root': { color: '#9CA3AF' },
+              '& .MuiInputBase-input': { color: '#E2E8F0' },
+            }}
+          />
+        </Box>
+
+        <Box sx={{ flex: 1 }}>
           <Select
-            options={modelOptions}
-            onChange={(option) => setSelectedModel(option?.value || null)}
-            placeholder="Select a Model"
-            value={modelOptions.find((option) => option.value === selectedModel)}
+            placeholder="Select the Dataset"
+            options={datasetOptions}
+            onChange={(option) => setDatasetLink(option?.value || '')}
+            value={datasetOptions.find((option) => option.value === datasetLink)}
             styles={{
-              ...customStyles,
+              container: (base) => ({
+                ...base,
+                width: '100%', // important for equal width
+              }),
               control: (base, state) => ({
                 ...base,
                 height: '56px',
@@ -210,45 +251,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
               }),
             }}
           />
-        </Box> */}
-        
-        <TextField
-          label="Select Model"
-          value={selectedModel}
-          // onChange={(e) => setDatasetLink(e.target.value)}
-          variant="outlined"
-          fullWidth
-          sx={{
-            flex: 1,
-            '& .MuiOutlinedInput-root': {
-              height: '56px',
-              '& fieldset': { borderColor: '#4B5563' },
-              '&:hover fieldset': { borderColor: '#5B21B6' },
-              '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
-            },
-            '& .MuiInputLabel-root': { color: '#9CA3AF' },
-            '& .MuiInputBase-input': { color: '#E2E8F0' },
-          }}
-        />
-
-        <TextField
-          label="Dataset Link"
-          value={datasetLink}
-          onChange={(e) => setDatasetLink(e.target.value)}
-          variant="outlined"
-          fullWidth
-          sx={{
-            flex: 1,
-            '& .MuiOutlinedInput-root': {
-              height: '56px',
-              '& fieldset': { borderColor: '#4B5563' },
-              '&:hover fieldset': { borderColor: '#5B21B6' },
-              '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
-            },
-            '& .MuiInputLabel-root': { color: '#9CA3AF' },
-            '& .MuiInputBase-input': { color: '#E2E8F0' },
-          }}
-        />
+        </Box>
       </Box>
 
       {/* Expandable Parameter Section */}

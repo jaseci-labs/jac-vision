@@ -47,6 +47,7 @@ class VQARequest(BaseModel):
 class CaptionRequest(BaseModel):
     caption: str
     image_path: str
+    dataset_path: str
 
 
 class CaptionResponse(BaseModel):

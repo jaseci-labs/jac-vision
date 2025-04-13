@@ -35,9 +35,9 @@ auto_annotation_status: Dict[str, Any] = {
 
 
 def load_existing_data(file_path: str):
-    if os.path.exists(file_path):
+    json_file_path = os.path.join("jsons", f"{file_path}.json")
+    if os.path.exists(json_file_path):
         try:
-            json_file_path = os.path.join("jsons", file_path)
             with open(json_file_path, "r") as file:
                 content = file.read().strip()
                 return json.loads(content) if content else []
@@ -170,6 +170,7 @@ def get_all_images(dataset_path):
     existing_data = load_existing_data(dataset_path)
     existing_paths = {entry["image"] for entry in existing_data}
     image_files = []
+    dataset_path = os.path.join("datasets", dataset_path)
     for folder_name, _, files in os.walk(dataset_path):
         for file in files:
             if file.lower().endswith(image_extensions):
@@ -182,11 +183,11 @@ def get_all_images(dataset_path):
     return image_files
 
 
-async def auto_annotate_task(api_key: str, api_type: str, model: str):
+async def auto_annotate_task(dataset_path: str, api_key: str, api_type: str, model: str):
     global auto_annotation_status
     try:
         auto_annotation_status["running"] = True
-        image_files = get_all_images()
+        image_files = get_all_images(dataset_path)
         auto_annotation_status["total_images"] = len(image_files)
 
         logger.info(f"Starting auto-annotation of {len(image_files)} images")
@@ -198,8 +199,9 @@ async def auto_annotate_task(api_key: str, api_type: str, model: str):
             try:
                 result = process_image(image_path, relative_path, api_key, api_type, model)
                 if result:
-                    existing_data = load_existing_data()
+                    existing_data = load_existing_data(dataset_path)
                     existing_data.append({"image": relative_path, "caption": result.caption})
+                    json_file_path = os.path.join("jsons", dataset_path)
                     with open(json_file_path, "w") as f:
                         json.dump(existing_data, f)
                     auto_annotation_status["processed"] += 1
@@ -214,7 +216,7 @@ async def auto_annotate_task(api_key: str, api_type: str, model: str):
                 logger.error(error_msg)
 
             # Remove processed image from queue
-            image_files = get_all_images()
+            image_files = get_all_images(dataset_path)
             await asyncio.sleep(1)
 
         logger.info("Auto-annotation completed successfully")

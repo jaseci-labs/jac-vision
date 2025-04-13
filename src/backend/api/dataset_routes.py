@@ -15,9 +15,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# json_file_path = "jsons/car_damage_data.json"
-# root_folder = "datasets/CarDataset"
-
 def save_json(json_file_name, data):
     if not os.path.exists(os.path.dirname(json_file_name)):
         os.makedirs(os.path.dirname(json_file_name))
@@ -84,9 +81,9 @@ async def get_next_image(
 
 
 @router.post("/save-caption")
-async def save_caption(request: CaptionRequest, file_path: str):
+async def save_caption(request: CaptionRequest):
     existing_data = []
-    json_file_path = os.path.join("jsons", file_path)
+    json_file_path = os.path.join("jsons", f"{request.dataset_path}.json")
     if os.path.exists(json_file_path):
         with open(json_file_path, "r") as f:
             existing_data = json.load(f)
@@ -124,10 +121,9 @@ async def download_json(file_path: str):
     )
 
 
-@router.get("/images/{filename:path}")
-async def serve_image(filename: str, file_path: str = ""):
-    root_folder = os.path.join("datasets", file_path)
-    file_path = os.path.join(root_folder, filename)
+@router.get("/images/{folder_path:path}/{filename:path}")
+async def serve_image(filename: str, folder_path: str = ""):
+    file_path = os.path.join("datasets", folder_path, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(file_path)

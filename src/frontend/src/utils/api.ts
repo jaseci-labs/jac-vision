@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = "https://9wgiv0v879p34x-4000.proxy.runpod.net";
+export const API_URL = "http://localhost:5000";
 
 // Define TypeScript interfaces for API responses
 export interface Model {
@@ -66,6 +66,10 @@ interface ModelsResponse {
   models: string[];
 }
 
+interface DatasetResponse {
+  datasets: string[];
+}
+
 interface DeleteModelResponse {
   message: string;
 }
@@ -80,6 +84,7 @@ interface ClearVqaHistoryResponse {
 
 interface UploadImageFolderResponse {
   message: string;
+  folder_name: string;
 }
 
 interface GetNextImageResponse {
@@ -93,6 +98,7 @@ interface GetNextImageResponse {
 interface SaveCaptionRequest {
   caption: string;
   image_path: string;
+  dataset_path: string;
 }
 
 interface SaveCaptionResponse {
@@ -152,6 +158,15 @@ export const performVqa = async (
 export const fetchModels = async (): Promise<ModelsResponse> => {
   try {
     const response = await axios.get(`${API_URL}/api/finetune/models`);
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const fetchDatasets = async (): Promise<DatasetResponse> => {
+  try {
+    const response = await axios.get(`${API_URL}/api/datasets/datasets`);
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -336,11 +351,17 @@ export const uploadImageFolder = async (formData: FormData): Promise<UploadImage
 };
 
 // Get the next image for captioning
-export const getNextImage = async (apiKey: string, apiType: string, model: string = 'google/gemma-3-12b-it:free'): Promise<GetNextImageResponse> => {
+export const getNextImage = async (dataset_path: string, apiKey: string, apiType: string, model: string = 'google/gemma-3-12b-it:free'): Promise<GetNextImageResponse> => {
   try {
     const response = await axios.get(`${API_URL}/api/datasets/get-next-image`, {
-      params: { api_key: apiKey, api_type: apiType, model },
+      params: { 
+        dataset_path: dataset_path, 
+        api_key: apiKey, 
+        api_type: apiType,
+        model: model 
+      },
     });
+    console.log('Response from getNextImage:', response.data);
     return response.data;
   } catch (error) {
     return handleApiError(error);
