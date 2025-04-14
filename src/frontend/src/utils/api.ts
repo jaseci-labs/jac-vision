@@ -166,7 +166,7 @@ export const fetchModels = async (): Promise<ModelsResponse> => {
 
 export const fetchDatasets = async (): Promise<DatasetResponse> => {
   try {
-    const response = await axios.get(`${API_URL}/api/datasets/datasets`);
+    const response = await axios.get(`${API_URL}/api/finetune/datasets`);
     return response.data;
   } catch (error) {
     return handleApiError(error);
