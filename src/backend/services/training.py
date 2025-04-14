@@ -88,6 +88,7 @@ def train_model(model_name: str, task_id: str, dataset_path: str):
         raise HTTPException(status_code=400, detail="Invalid model name")
     json_file_path = os.path.join("jsons", dataset_path, ".json")
     root_folder = os.path.join("datasets", dataset_path)
+    print(json_file_path, root_folder)
     if not os.path.exists(json_file_path) or not os.path.exists(root_folder):
         raise HTTPException(status_code=404, detail="Dataset not found")
     
