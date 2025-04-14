@@ -230,7 +230,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
             styles={{
               container: (base) => ({
                 ...base,
-                width: '100%', // important for equal width
+                width: '100%',
               }),
               control: (base, state) => ({
                 ...base,
@@ -240,6 +240,25 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
                 backgroundColor: 'transparent',
                 color: '#E2E8F0',
                 '&:hover': { borderColor: '#5B21B6' },
+              }),
+              menu: (base) => ({
+                ...base,
+                backgroundColor: '#1F2937',
+                color: '#E2E8F0',
+                zIndex: 9999,
+              }),
+              option: (base, state) => ({
+                ...base,
+                backgroundColor: state.isSelected
+                  ? '#5B21B6'
+                  : state.isFocused
+                    ? '#374151'
+                    : 'transparent',
+                color: '#E2E8F0',
+                cursor: 'pointer',
+                '&:active': {
+                  backgroundColor: '#4C1D95',
+                },
               }),
               singleValue: (base) => ({
                 ...base,
