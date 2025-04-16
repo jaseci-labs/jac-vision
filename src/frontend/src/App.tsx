@@ -80,7 +80,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (selectedSection) {
       case 'fine-tune':
-        return <FineTune selectedModel="unsloth/Qwen2-VL-2B-Instruct-bnb-4bit" setSelectedModel={setSelectedModel} toast={toast} />;
+        return <FineTune selectedModel="unsloth/Qwen2.5-VL-7B-Instruct-bnb-4bit" setSelectedModel={setSelectedModel} toast={toast} />;
       case 'vqa':
         return <FineTunedVQA selectedModel={selectedModel} setSelectedModel={setSelectedModel} toast={toast} />;
       case 'search':
