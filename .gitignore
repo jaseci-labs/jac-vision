@@ -5,3 +5,7 @@ venv/
 build/
 dist/
 backend/vqa_history.db
+.flake8
+src/backend/mypy.ini
+src/backend/.pre-commit-config.yaml
+src/backend/.flake8

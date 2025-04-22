@@ -1,26 +1,31 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
-from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
+import base64
+import json
+import logging
 import os
-from PIL import Image
+import shutil
+import sqlite3
+import zipfile  # Added for ZIP file creation
+from datetime import datetime
+from io import BytesIO
+from typing import List, Optional
+
+import google.generativeai as genai
+import openai
 import psutil
 import requests
-import logging
-import google.generativeai as genai
-import base64
-from io import BytesIO
-import sqlite3
-from datetime import datetime
-import shutil
-import openai
-from transformers import AutoModelForCausalLM, AutoProcessor, Qwen2VLForConditionalGeneration, Qwen2ForCausalLM
 import torch
-from huggingface_hub import snapshot_download, HfApi
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from huggingface_hub import HfApi, snapshot_download
+from PIL import Image
 from pydantic import BaseModel, Field
-import json
-from typing import Optional, List
-import zipfile  # Added for ZIP file creation
-import google.generativeai as genai
+from transformers import (
+    AutoModelForCausalLM,
+    AutoProcessor,
+    Qwen2ForCausalLM,
+    Qwen2VLForConditionalGeneration,
+)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -61,8 +66,8 @@ def init_db():
 init_db()
 
 # Configuration for image captioning
-root_folder = "CarData"
-json_file_path = "car_damage_data.json"
+root_folder = "datasets/CarDataset"
+json_file_path = "jsons/car_damage_data.json"
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")  # Load from environment variable
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 SITE_URL = "<YOUR_SITE_URL>"
@@ -72,7 +77,7 @@ MAX_RETRIES = 3
 RETRY_DELAY = 10
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB limit for uploads
 
-# Ensure the CarData folder exists
+# Ensure the datasets/CarDataset folder exists
 if not os.path.exists(root_folder):
     os.makedirs(root_folder)
 
@@ -628,7 +633,7 @@ async def upload_image_folder(file: UploadFile = File(...)):
         logger.error(f"File size {file.size} exceeds maximum limit of {MAX_FILE_SIZE} bytes")
         raise HTTPException(status_code=400, detail=f"File size exceeds maximum limit of {MAX_FILE_SIZE / (1024 * 1024)} MB")
     logger.debug(f"Received file: {file.filename}, Content-Type: {file.content_type}, Size: {file.size}")
-    upload_dir = "CarData"
+    upload_dir = "datasets/CarDataset"
     if os.path.exists(upload_dir):
         shutil.rmtree(upload_dir)
     os.makedirs(upload_dir)
@@ -693,7 +698,7 @@ async def save_caption(request: CaptionRequest):
 
     return {"message": "Caption saved successfully"}
 
-# Serve images from the CarData folder
+# Serve images from the datasets/CarDataset folder
 @app.get("/images/{filename:path}")
 async def serve_image(filename: str):
     file_path = os.path.join(root_folder, filename)
@@ -708,7 +713,7 @@ async def download_json():
         raise HTTPException(status_code=404, detail="JSON file not found")
     return FileResponse(
         path=json_file_path,
-        filename="car_damage_data.json",
+        filename="jsons/car_damage_data.json",
         media_type="application/json"
     )
 
@@ -723,7 +728,7 @@ async def download_dataset():
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         # Add the JSON file
-        zip_file.write(json_file_path, "car_damage_data.json")
+        zip_file.write(json_file_path, "jsons/car_damage_data.json")
         # Add all images referenced in the JSON
         for entry in existing_data:
             image_path = os.path.join(root_folder, entry["image"])
@@ -764,7 +769,7 @@ class ChatbotRequest(BaseModel):
     param_range_max: float = 7.0
     hardware_gpu_memory: Optional[float] = None  # Explicitly allow None
     preference: Optional[str] = None
-    
+
 
 # Existing search_huggingface_models function (unchanged)
 def search_huggingface_models(query: str, tags: list = [], param_range_min: float = 3.0, param_range_max: float = 7.0, hardware_gpu_memory: float = None, preference: str = None, limit: int = 5) -> list:

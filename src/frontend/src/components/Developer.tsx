@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, LinearProgress, Button, CircularProgress, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { API_URL } from '../utils/api';
 
 interface DeveloperProps {
   themeMode: 'light' | 'dark';
@@ -40,7 +41,7 @@ const Developer: React.FC<DeveloperProps> = ({ themeMode }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.get('http://localhost:5000/system-info');
+      const response = await axios.get(`${API_URL}/api/system/system-info`);
       const data: SystemInfo = response.data;
       setSystemInfo(data);
 

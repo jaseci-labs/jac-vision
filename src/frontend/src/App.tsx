@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -28,17 +28,19 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import FineTune from './components/FineTune';
-import VQA from './components/VQA';
+// import VQA from './components/VQA';
 import Search from './components/Search';
 import Models from './components/Models';
-import Developer from './components/Developer';
+// import Developer from './components/Developer';
+import Analysis from './components/Analysis';
 import Settings from './components/Settings';
 import ImageCaptioning from './components/ImageCaptioning'; // Added for Image Captioning
 import logo from './assets/logo.png';
 import './styles/App.css';
+import FineTunedVQA from './components/FineTunedVQA';
 
 const App: React.FC = () => {
-  const [selectedSection, setSelectedSection] = useState<string>('fine-tune');
+  const [selectedSection, setSelectedSection] = useState<string>('image-captioning');
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('dark');
   const [drawerOpen, setDrawerOpen] = useState(true);
@@ -78,15 +80,15 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (selectedSection) {
       case 'fine-tune':
-        return <FineTune selectedModel={selectedModel} setSelectedModel={setSelectedModel} toast={toast} />;
+        return <FineTune selectedModel="unsloth/Qwen2.5-VL-7B-Instruct-bnb-4bit" setSelectedModel={setSelectedModel} toast={toast} />;
       case 'vqa':
-        return <VQA selectedModel={selectedModel} setSelectedModel={setSelectedModel} toast={toast} />;
+        return <FineTunedVQA selectedModel={selectedModel} setSelectedModel={setSelectedModel} toast={toast} />;
       case 'search':
         return <Search toast={toast} themeMode={themeMode} />;
       case 'models':
         return <Models toast={toast} themeMode={themeMode} />;
-      case 'developer':
-        return <Developer themeMode={themeMode} />;
+      case 'analysis':
+        return <Analysis themeMode={themeMode} />;
       case 'settings':
         return <Settings themeMode={themeMode} setThemeMode={setThemeMode} />;
       case 'image-captioning': // Added for Image Captioning
@@ -158,12 +160,13 @@ const App: React.FC = () => {
           <Toolbar />
           <List>
             {[
-              { text: 'Search for a Model', icon: <SearchIcon />, section: 'search' },
-              { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
-              { text: 'Models', icon: <ModelsIcon />, section: 'models' },
-              { text: 'Fine-Tune', icon: <FineTuneIcon />, section: 'fine-tune' },
+              // { text: 'Search for a Model', icon: <SearchIcon />, section: 'search' },
               { text: 'Image Captioning', icon: <ImageIcon />, section: 'image-captioning' }, // Added for Image Captioning
-              { text: 'Developer', icon: <DeveloperIcon />, section: 'developer' },
+              { text: 'Fine-Tune', icon: <FineTuneIcon />, section: 'fine-tune' },
+              { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
+              // { text: 'VQA', icon: <VqaIcon />, section: 'vqa' },
+              // { text: 'Models', icon: <ModelsIcon />, section: 'models' },
+              { text: 'Analysis', icon: <DeveloperIcon />, section: 'analysis' },
               { text: 'Settings', icon: <SettingsIcon />, section: 'settings' },
             ].map((item) => (
               <ListItemButton
@@ -204,7 +207,7 @@ const App: React.FC = () => {
         <main
           className="content"
           style={{
-            marginLeft: isMobile ? 0 : (drawerOpen ? 240 : 60),
+            // marginLeft: isMobile ? 0 : (drawerOpen ? 240 : 60),
             transition: 'margin-left 0.3s',
             paddingTop: '80px',
           }}
