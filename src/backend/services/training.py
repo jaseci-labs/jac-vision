@@ -31,6 +31,7 @@ AVAILABLE_MODELS = [
 task_status = {}
 trained_models = {}
 
+
 class ProgressCallback(TrainerCallback):
     def __init__(self, task_id: str, total_steps: int):
         self.task_id = task_id
@@ -70,18 +71,23 @@ class ProgressCallback(TrainerCallback):
     def on_train_end(self, args, state, control, **kwargs):
         task_status[self.task_id].update({"status": "COMPLETED", "progress": 100})
 
+
 def retreive_captioned_dataset():
     dataset_dir = "datasets"
     try:
         if not os.path.exists(dataset_dir):
-            return HTTPException(status_code=404, content={"message": "Dataset directory not found."})
+            return HTTPException(
+                status_code=404, content={"message": "Dataset directory not found."}
+            )
         folder_names = [
-            name for name in os.listdir(dataset_dir)
+            name
+            for name in os.listdir(dataset_dir)
             if os.path.isdir(os.path.join(dataset_dir, name))
         ]
         return {"datasets": folder_names}
     except Exception as e:
         raise HTTPException(status_code=500, detail="Dataset loading failed")
+
 
 def train_model(model_name: str, task_id: str, dataset_path: str):
     if model_name not in AVAILABLE_MODELS:
@@ -90,7 +96,7 @@ def train_model(model_name: str, task_id: str, dataset_path: str):
     root_folder = os.path.join("datasets", dataset_path)
     if not os.path.exists(json_file_path) or not os.path.exists(root_folder):
         raise HTTPException(status_code=404, detail="Dataset not found")
-    
+
     task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
     converted_dataset = get_custom_dataset(json_file_path, root_folder)
 

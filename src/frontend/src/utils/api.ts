@@ -354,11 +354,11 @@ export const uploadImageFolder = async (formData: FormData): Promise<UploadImage
 export const getNextImage = async (dataset_path: string, apiKey: string, apiType: string, model: string = 'google/gemma-3-12b-it:free'): Promise<GetNextImageResponse> => {
   try {
     const response = await axios.get(`${API_URL}/api/datasets/get-next-image`, {
-      params: { 
-        dataset_path: dataset_path, 
-        api_key: apiKey, 
+      params: {
+        dataset_path: dataset_path,
+        api_key: apiKey,
         api_type: apiType,
-        model: model 
+        model: model
       },
     });
     console.log('Response from getNextImage:', response.data);

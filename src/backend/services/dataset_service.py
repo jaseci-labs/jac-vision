@@ -1,18 +1,17 @@
+import asyncio
 import base64
 import json
 import logging
 import os
 import zipfile
-import asyncio
 from io import BytesIO
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import google.generativeai as genai
 import requests
 from fastapi import HTTPException
 from schemas.models import CaptionResponse
 from utils.image_utils import encode_image
-from typing import Dict, Any
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -183,7 +182,9 @@ def get_all_images(dataset_path):
     return image_files
 
 
-async def auto_annotate_task(dataset_path: str, api_key: str, api_type: str, model: str):
+async def auto_annotate_task(
+    dataset_path: str, api_key: str, api_type: str, model: str
+):
     global auto_annotation_status
     try:
         auto_annotation_status["running"] = True
@@ -197,10 +198,14 @@ async def auto_annotate_task(dataset_path: str, api_key: str, api_type: str, mod
             auto_annotation_status["current_image"] = relative_path
 
             try:
-                result = process_image(image_path, relative_path, api_key, api_type, model)
+                result = process_image(
+                    image_path, relative_path, api_key, api_type, model
+                )
                 if result:
                     existing_data = load_existing_data(dataset_path)
-                    existing_data.append({"image": relative_path, "caption": result.caption})
+                    existing_data.append(
+                        {"image": relative_path, "caption": result.caption}
+                    )
                     json_file_path = os.path.join("jsons", dataset_path)
                     with open(json_file_path, "w") as f:
                         json.dump(existing_data, f)
@@ -221,8 +226,10 @@ async def auto_annotate_task(dataset_path: str, api_key: str, api_type: str, mod
 
         logger.info("Auto-annotation completed successfully")
     finally:
-        auto_annotation_status.update({
-            "running": False,
-            "current_image": None,
-        })
+        auto_annotation_status.update(
+            {
+                "running": False,
+                "current_image": None,
+            }
+        )
         logger.info("Auto-annotation task has ended")

@@ -5,15 +5,22 @@ import shutil
 import zipfile
 from io import BytesIO
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile, Form
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
 from schemas.models import AutoAnnotateRequest, CaptionRequest
-from services.dataset_service import auto_annotate_task, get_all_images, load_existing_data, process_image, auto_annotation_status
+from services.dataset_service import (
+    auto_annotate_task,
+    auto_annotation_status,
+    get_all_images,
+    load_existing_data,
+    process_image,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 def save_json(json_file_name, data):
     if not os.path.exists(os.path.dirname(json_file_name)):
@@ -25,7 +32,9 @@ def save_json(json_file_name, data):
 
 
 @router.post("/upload-image-folder")
-async def upload_image_folder(file: UploadFile = File(...), folder_name: str = Form(...)):
+async def upload_image_folder(
+    file: UploadFile = File(...), folder_name: str = Form(...)
+):
     safe_folder_name = folder_name.strip().lower().replace(" ", "_")
 
     if safe_folder_name == "":
@@ -54,7 +63,7 @@ async def upload_image_folder(file: UploadFile = File(...), folder_name: str = F
     return {
         "message": "Image folder uploaded successfully",
         "folder_name": safe_folder_name,
-        }
+    }
 
 
 @router.get("/get-next-image")
@@ -145,29 +154,29 @@ async def clear_data(file_path: str = ""):
         os.makedirs(root_folder)
     return {"message": "All data cleared successfully"}
 
+
 @router.post("/auto-annotate")
 async def start_auto_annotate(
-    request: AutoAnnotateRequest,
-    background_tasks: BackgroundTasks
+    request: AutoAnnotateRequest, background_tasks: BackgroundTasks
 ):
     if auto_annotation_status["running"]:
         raise HTTPException(400, "Annotation already in progress")
 
     # Reset status
-    auto_annotation_status.update({
-        "processed": 0,
-        "failed": 0,
-        "errors": [],
-        "total_images": 0,
-    })
+    auto_annotation_status.update(
+        {
+            "processed": 0,
+            "failed": 0,
+            "errors": [],
+            "total_images": 0,
+        }
+    )
 
     background_tasks.add_task(
-        auto_annotate_task,
-        request.api_key,
-        request.api_type,
-        request.model
+        auto_annotate_task, request.api_key, request.api_type, request.model
     )
     return {"message": "Auto annotation started"}
+
 
 @router.get("/auto-annotate/status")
 async def get_annotation_status():
@@ -177,12 +186,20 @@ async def get_annotation_status():
             "processed": auto_annotation_status["processed"],
             "failed": auto_annotation_status["failed"],
             "total": auto_annotation_status["total_images"],
-            "percentage": round(
-                (auto_annotation_status["processed"] + auto_annotation_status["failed"]) /
-                max(auto_annotation_status["total_images"], 1) * 100,
-                2
-            ) if auto_annotation_status["total_images"] > 0 else 0,
+            "percentage": (
+                round(
+                    (
+                        auto_annotation_status["processed"]
+                        + auto_annotation_status["failed"]
+                    )
+                    / max(auto_annotation_status["total_images"], 1)
+                    * 100,
+                    2,
+                )
+                if auto_annotation_status["total_images"] > 0
+                else 0
+            ),
         },
         "current_image": auto_annotation_status["current_image"],
-        "errors": auto_annotation_status["errors"][-5:]  # Last 5 errors
+        "errors": auto_annotation_status["errors"][-5:],  # Last 5 errors
     }

@@ -84,10 +84,12 @@ class GetNextImageResponse(BaseModel):
     caption: str
     total: int
 
+
 class AutoAnnotateRequest(BaseModel):
     api_key: str
     api_type: str
     model: str = "google/gemma-3-12b-it:free"
+
 
 class AnnotationStatusResponse(BaseModel):
     status: str

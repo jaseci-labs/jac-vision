@@ -13,11 +13,11 @@ from schemas.models import (
 from services.save import save_gguf_model, save_model
 from services.training import (
     AVAILABLE_MODELS,
+    retreive_captioned_dataset,
     task_status,
     train_model,
     train_model_with_goal,
     trained_models,
-    retreive_captioned_dataset
 )
 
 router = APIRouter()
@@ -27,17 +27,23 @@ router = APIRouter()
 def get_models():
     return {"models": AVAILABLE_MODELS}
 
+
 @router.get("/datasets")
 def get_captioned_datasets():
     return retreive_captioned_dataset()
-    
+
 
 @router.post("/start-finetuning")
 async def start_finetuning(
     request: FineTuningRequest, background_tasks: BackgroundTasks
 ):
     task_id = str(uuid.uuid4())
-    background_tasks.add_task(train_model, model_name=request.model_name, task_id=task_id, dataset_path=request.dataset_path)
+    background_tasks.add_task(
+        train_model,
+        model_name=request.model_name,
+        task_id=task_id,
+        dataset_path=request.dataset_path,
+    )
     return {"task_id": task_id, "status": "STARTED"}
 
 
