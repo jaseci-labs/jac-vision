@@ -96,3 +96,11 @@ class AnnotationStatusResponse(BaseModel):
     progress: dict
     current_image: Optional[str]
     errors: List[str]
+
+class PromptRequest(BaseModel):
+    prompt: str
+
+class PreviewResponse(BaseModel):
+    image_path: str
+    caption: str
+    prompt_used: str

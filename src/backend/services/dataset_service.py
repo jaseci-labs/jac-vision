@@ -3,6 +3,7 @@ import base64
 import json
 import logging
 import os
+import time
 import zipfile
 from io import BytesIO
 from typing import Any, Dict, Optional
@@ -31,6 +32,27 @@ auto_annotation_status: Dict[str, Any] = {
     "total_images": 0,
     "errors": [],
 }
+
+caption_workflow_state = {
+    "custom_prompt": None,
+    "current_job": None,
+    "progress": {
+        "total": 0,
+        "processed": 0,
+        "failed": 0,
+        "errors": []
+    }
+}
+
+DEFAULT_PROMPT = (
+    "Describe a car’s condition in one paragraph for a car damage dataset, based on the provided image. "
+    "If visible damage exists, detail the type, the specific parts affected, the severity, and notable aspects like "
+    "the damage location. If no damage is visible, state that clearly and include the car’s "
+    "overall condition and any relevant observations. Ensure the description is clear, precise, and avoids assumptions "
+    "beyond the image content. Do not include introductory phrases like 'Here is a description,' 'Based on the image,' "
+    "'This image shows,' or any reference to the image itself and statements like 'further inspection is needed'; "
+    "focus solely on the car’s state in a direct, standalone manner."
+)
 
 
 def load_existing_data(file_path: str):
@@ -233,3 +255,59 @@ async def auto_annotate_task(
             }
         )
         logger.info("Auto-annotation task has ended")
+
+def process_image_with_prompt(
+    image_path: str,
+    relative_path: str,
+    prompt: str,
+    api_key: str,
+    model: str = "google/gemma-3-12b-it:free",
+    max_retries: int = 3
+) -> Optional[str]:
+    for attempt in range(max_retries):
+        try:
+            # Encode image to base64
+            image_base64 = encode_image(image_path)
+
+            # Build the API request payload
+            payload = {
+                "model": model,
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {
+                            "url": f"data:image/jpeg;base64,{image_base64}"
+                        }}
+                    ]
+                }]
+            }
+
+            # Set up headers with dynamic API key
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": SITE_URL,
+                "X-Title": SITE_NAME
+            }
+
+            # Make the API request
+            response = requests.post(
+                OPENROUTER_URL,
+                headers=headers,
+                data=json.dumps(payload),
+                timeout=30
+            )
+            response.raise_for_status()
+
+            # Extract and return the caption
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+
+        except Exception as e:
+            logging.error(f"Attempt {attempt+1} failed for {relative_path}: {str(e)}")
+            if attempt == max_retries - 1:
+                return None
+            time.sleep(2 ** attempt)  # Exponential backoff
+
+    return None

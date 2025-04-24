@@ -189,7 +189,7 @@ def train_model(model_name: str, task_id: str, dataset_path: str):
 
 
 def train_model_with_goal(
-    task_id: str, model_name: str, dataset_id: str, goal_type: str, target: str
+    task_id: str, model_name: str, dataset_id: str, goal_type: str, target: str, dataset_path: str
 ):
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
@@ -222,7 +222,8 @@ def train_model_with_goal(
         )
 
         print("[MODEL INIT] Model and tokenizer loaded successfully.")
-
+        json_file_path = os.path.join("jsons", f"{dataset_path}.json")
+        root_folder = os.path.join("datasets", dataset_path)
         train_dataset = get_custom_dataset(json_file_path, root_folder)
 
         FastVisionModel.for_training(model)
