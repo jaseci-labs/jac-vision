@@ -258,7 +258,7 @@ async def preview_captioning(
         raise HTTPException(500, f"Preview failed: {str(e)}")
 
 
-async def auto_caption_task(api_key: str, api_type: str, model: str, file_path: str):
+async def auto_caption_task(api_key: str, model: str, file_path: str):
     print("Starting auto_caption_task")  # Debug statement
     image_files = get_all_images()
     print(f"Found {len(image_files)} images for captioning")  # Debug statement
@@ -281,7 +281,10 @@ async def auto_caption_task(api_key: str, api_type: str, model: str, file_path: 
         )  # Debug statement
         try:
             caption = process_image_with_prompt(
-                image_path, relative_path, prompt, api_key, api_type, model
+                image_path,
+                relative_path,
+                prompt,
+                api_key,
             )
             print(
                 f"Generated caption for {relative_path}: {caption}"
@@ -313,7 +316,6 @@ async def auto_caption_task(api_key: str, api_type: str, model: str, file_path: 
 async def start_auto_captioning(
     background_tasks: BackgroundTasks,
     api_key: str = Form(...),
-    api_type: str = Form(...),
     model: str = Form("google/gemma-3-12b-it:free"),
 ):
     print("Received request to start auto captioning")  # Debug statement
@@ -322,7 +324,7 @@ async def start_auto_captioning(
         raise HTTPException(400, "Captioning job already in progress")
 
     print("Starting background task for auto captioning")  # Debug statement
-    background_tasks.add_task(auto_caption_task, api_key, api_type, model)
+    background_tasks.add_task(auto_caption_task, api_key, model)
     return {"message": "Auto captioning started"}
 
 
