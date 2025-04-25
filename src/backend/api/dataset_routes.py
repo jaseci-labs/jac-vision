@@ -219,8 +219,13 @@ async def set_custom_prompt(request: PromptRequest):
     return {"message": "Prompt updated successfully"}
 
 @router.get("/captioning/preview")
-async def preview_captioning(file_path: str):
-    print("Starting preview_captioning endpoint")  # Debug statement
+async def preview_captioning(file_path: str, api_key: str = "",):
+    if not api_key:
+        raise HTTPException(400, "API key is required")
+    if not file_path:
+        raise HTTPException(400, "File path is required")
+
+    print("Starting preview_captioning endpoint")
     image_files = get_all_images(file_path)
     if not image_files:
         raise HTTPException(400, "No images available for preview")
@@ -233,10 +238,9 @@ async def preview_captioning(file_path: str):
             image_path,
             relative_path,
             prompt,
-            api_key="preview-key",  # Will be replaced in actual processing
-            api_type="gemini"       # Default for preview
+            api_key=api_key,
         )
-        print(f"Preview generated for image: {relative_path}")  # Debug statement
+        print(f"Preview generated for image: {relative_path}")
         return PreviewResponse(
             image_path=relative_path,
             caption=caption,
