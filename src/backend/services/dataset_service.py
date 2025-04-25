@@ -14,7 +14,7 @@ from fastapi import HTTPException
 from schemas.models import CaptionResponse
 from utils.image_utils import encode_image
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 MAX_RETRIES = 3
@@ -100,7 +100,10 @@ def process_image(
                     "X-Title": SITE_NAME,
                 }
                 response = requests.post(
-                    OPENROUTER_URL, headers=headers, data=json.dumps(payload), timeout=30
+                    OPENROUTER_URL,
+                    headers=headers,
+                    data=json.dumps(payload),
+                    timeout=30,
                 )
                 response.raise_for_status()
                 result = response.json()
@@ -227,7 +230,10 @@ def process_image_with_prompt(
                     "X-Title": SITE_NAME,
                 }
                 response = requests.post(
-                    OPENROUTER_URL, headers=headers, data=json.dumps(payload), timeout=30
+                    OPENROUTER_URL,
+                    headers=headers,
+                    data=json.dumps(payload),
+                    timeout=30,
                 )
                 response.raise_for_status()
                 result = response.json()

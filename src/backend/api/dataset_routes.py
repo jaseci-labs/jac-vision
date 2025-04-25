@@ -23,7 +23,7 @@ from services.dataset_service import (
     process_image_with_prompt,
 )
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -249,7 +249,9 @@ async def auto_caption_task(
                 print(f"Generated caption for {relative_path}: {caption}")
 
                 request = CaptionRequest(
-                    dataset_path=file_path, image_path=relative_path, caption=caption.caption
+                    dataset_path=file_path,
+                    image_path=relative_path,
+                    caption=caption.caption,
                 )
                 await save_caption(request)
                 print(f"Caption saved for {relative_path}")
@@ -286,7 +288,13 @@ async def start_auto_captioning(
         raise HTTPException(400, "Captioning job already in progress")
 
     print("Starting background task for auto captioning")
-    background_tasks.add_task(auto_caption_task, api_key, file_path, api_type, model,)
+    background_tasks.add_task(
+        auto_caption_task,
+        api_key,
+        file_path,
+        api_type,
+        model,
+    )
     return {"message": "Auto captioning started"}
 
 
