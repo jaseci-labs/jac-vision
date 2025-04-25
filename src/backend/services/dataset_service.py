@@ -195,44 +195,105 @@ def process_image_with_prompt(
     relative_path: str,
     prompt: str,
     api_key: str,
+    api_type: str,
     model: str = "google/gemma-3-12b-it:free",
 ) -> Optional[str]:
     for attempt in range(MAX_RETRIES):
         try:
             image_base64 = encode_image(image_path)
 
-            payload = {
-                "model": model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{image_base64}"
+            if api_type.lower() == "openrouter":
+                payload = {
+                    "model": model,  # Use the model passed from the frontend
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": prompt},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{image_base64}"
+                                    },
                                 },
-                            },
-                        ],
-                    }
-                ],
-            }
+                            ],
+                        }
+                    ],
+                }
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": SITE_URL,
+                    "X-Title": SITE_NAME,
+                }
+                response = requests.post(
+                    OPENROUTER_URL, headers=headers, data=json.dumps(payload)
+                )
+                response.raise_for_status()
+                result = response.json()
+                return CaptionResponse(
+                    image=relative_path,
+                    caption=result["choices"][0]["message"]["content"],
+                )
 
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": SITE_URL,
-                "X-Title": SITE_NAME,
-            }
+            elif api_type.lower() == "openai":
+                OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+                payload = {
+                    "model": "gpt-4-vision-preview",
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": prompt},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{image_base64}"
+                                    },
+                                },
+                            ],
+                        }
+                    ],
+                    "max_tokens": 300,
+                }
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                }
+                response = requests.post(
+                    OPENAI_URL, headers=headers, data=json.dumps(payload)
+                )
+                response.raise_for_status()
+                result = response.json()
+                return CaptionResponse(
+                    image=relative_path,
+                    caption=result["choices"][0]["message"]["content"],
+                )
 
-            response = requests.post(
-                OPENROUTER_URL, headers=headers, data=json.dumps(payload), timeout=30
-            )
-            response.raise_for_status()
-
-            result = response.json()
-            return result["choices"][0]["message"]["content"]
+            elif api_type.lower() == "gemini":
+                genai.configure(api_key=api_key)
+                model_gemini = genai.GenerativeModel("gemini-1.5-flash")
+                response = model_gemini.generate_content(
+                    [
+                        {
+                            "role": "user",
+                            "parts": [
+                                {"text": prompt},
+                                {
+                                    "inline_data": {
+                                        "mime_type": "image/jpeg",
+                                        "data": image_base64,
+                                    }
+                                },
+                            ],
+                        }
+                    ]
+                )
+                return CaptionResponse(image=relative_path, caption=response.text)
+            else:
+                raise HTTPException(
+                    status_code=400, detail=f"API type {api_type} not supported"
+                )
 
         except Exception as e:
             logging.error(f"Attempt {attempt+1} failed for {relative_path}: {str(e)}")

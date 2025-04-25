@@ -176,7 +176,9 @@ async def set_custom_prompt(request: PromptRequest):
 @router.get("/show-captioning-preview")
 async def preview_captioning(
     file_path: str,
-    api_key: str, # Use OpenRouter API key for preview
+    api_key: str,  # Use OpenRouter API key for preview
+    api_type: str = "openrouter",
+    model: str = "google/gemma-3-12b-it:free",
 ):
     if not api_key:
         raise HTTPException(400, "API key is required")
@@ -207,9 +209,10 @@ async def preview_captioning(
 
 
 async def auto_caption_task(
-    api_key: str, # Use OpenRouter API key for auto captioning
-    model: str,
-    file_path: str
+    api_key: str,  # Use OpenRouter API key for auto captioning
+    file_path: str,
+    api_type: str = "openrouter",
+    model: str = "google/gemma-3-12b-it:free",
 ):
 
     print("Starting auto_caption_task")
@@ -230,24 +233,20 @@ async def auto_caption_task(
     print(f"JSON file path: {json_file_path}")
 
     for idx, (image_path, relative_path) in enumerate(image_files):
-        print(
-            f"Processing image {idx + 1}/{len(image_files)}: {relative_path}\n"
-        )
+        print(f"\nProcessing image {idx + 1}/{len(image_files)}: {relative_path}")
         try:
+            caption_workflow_state["current_job"] = relative_path
+
             caption = process_image_with_prompt(
                 image_path,
                 relative_path,
                 prompt,
                 api_key,
             )
-            print(
-                f"Generated caption for {relative_path}: {caption}"
-            )
+            print(f"Generated caption for {relative_path}: {caption}")
 
             request = CaptionRequest(
-                dataset_path=file_path,
-                image_path=relative_path,
-                caption=caption
+                dataset_path=file_path, image_path=relative_path, caption=caption
             )
             await save_caption(request)
             print(f"Caption saved for {relative_path}")
