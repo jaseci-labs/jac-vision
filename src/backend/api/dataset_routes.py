@@ -216,58 +216,60 @@ async def auto_caption_task(
     api_type: str = "openrouter",
     model: str = "google/gemma-3-12b-it:free",
 ):
+    try:
+        caption_workflow_state["current_job"] = True
+        print("Starting auto_caption_task")
+        image_files = get_all_images(file_path)
 
-    print("Starting auto_caption_task")
-    image_files = get_all_images(file_path)
+        print(f"Found {len(image_files)} images for captioning")
+        caption_workflow_state["progress"] = {
+            "total": len(image_files),
+            "processed": 0,
+            "failed": 0,
+            "errors": [],
+        }
 
-    print(f"Found {len(image_files)} images for captioning")
-    caption_workflow_state["progress"] = {
-        "total": len(image_files),
-        "processed": 0,
-        "failed": 0,
-        "errors": [],
-    }
+        prompt = caption_workflow_state["custom_prompt"] or DEFAULT_PROMPT
+        print(f"Using prompt: {prompt}")
 
-    prompt = caption_workflow_state["custom_prompt"] or DEFAULT_PROMPT
-    print(f"Using prompt: {prompt}")
+        json_file_path = os.path.join("jsons", f"{file_path}.json")
+        print(f"JSON file path: {json_file_path}")
 
-    json_file_path = os.path.join("jsons", f"{file_path}.json")
-    print(f"JSON file path: {json_file_path}")
+        for idx, (image_path, relative_path) in enumerate(image_files):
+            print(f"\nProcessing image {idx + 1}/{len(image_files)}: {relative_path}")
+            try:
+                caption = process_image_with_prompt(
+                    image_path,
+                    relative_path,
+                    prompt,
+                    api_key,
+                    api_type,
+                    model,
+                )
+                print(f"Generated caption for {relative_path}: {caption}")
 
-    for idx, (image_path, relative_path) in enumerate(image_files):
-        print(f"\nProcessing image {idx + 1}/{len(image_files)}: {relative_path}")
-        try:
-            caption_workflow_state["current_job"] = relative_path
+                request = CaptionRequest(
+                    dataset_path=file_path, image_path=relative_path, caption=caption
+                )
+                await save_caption(request)
+                print(f"Caption saved for {relative_path}")
 
-            caption = process_image_with_prompt(
-                image_path,
-                relative_path,
-                prompt,
-                api_key,
-                api_type,
-                model,
-            )
-            print(f"Generated caption for {relative_path}: {caption}")
+                caption_workflow_state["progress"]["processed"] += 1
+            except Exception as e:
+                print(f"Error processing {relative_path}: {str(e)}")
+                caption_workflow_state["progress"]["failed"] += 1
+                caption_workflow_state["progress"]["errors"].append(
+                    f"{relative_path}: {str(e)}"
+                )
 
-            request = CaptionRequest(
-                dataset_path=file_path, image_path=relative_path, caption=caption
-            )
-            await save_caption(request)
-            print(f"Caption saved for {relative_path}")
+            finally:
+                await asyncio.sleep(1)  # Rate limiting
 
-            caption_workflow_state["progress"]["processed"] += 1
-        except Exception as e:
-            print(f"Error processing {relative_path}: {str(e)}")
-            caption_workflow_state["progress"]["failed"] += 1
-            caption_workflow_state["progress"]["errors"].append(
-                f"{relative_path}: {str(e)}"
-            )
-
-        # Update progress
-        caption_workflow_state["progress"]["processed"] = idx + 1
-        await asyncio.sleep(1)  # Rate limiting
-
-    print("auto_caption_task completed")
+    except Exception as e:
+        print(f"Auto-captioning failed: {str(e)}")
+    finally:
+        caption_workflow_state["current_job"] = False  # Reset job status
+        print("auto_caption_task completed")
 
 
 @router.post("/start-auto-captioning")
@@ -287,9 +289,16 @@ async def start_auto_captioning(
     return {"message": "Auto captioning started"}
 
 
-@router.get("/auto-captioning-progress")
+@router.get("/captioning/progress")
 async def get_captioning_progress():
+    progress = caption_workflow_state["progress"]
+    total = progress["total"]
+    processed = progress["processed"] + progress["failed"]
+
     return {
         "status": "running" if caption_workflow_state["current_job"] else "idle",
-        "progress": caption_workflow_state["progress"],
+        "progress": {
+            **progress,
+            "percentage": (round(processed / total * 100, 2) if total > 0 else 0),
+        },
     }

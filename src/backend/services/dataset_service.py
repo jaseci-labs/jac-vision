@@ -36,7 +36,7 @@ DEFAULT_PROMPT = (
 
 caption_workflow_state = {
     "custom_prompt": DEFAULT_PROMPT,
-    "current_job": None,
+    "current_job": False,
     "progress": {"total": 0, "processed": 0, "failed": 0, "errors": []},
 }
 
