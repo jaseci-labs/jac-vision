@@ -43,6 +43,7 @@ async def start_finetuning(
         model_name=request.model_name,
         task_id=task_id,
         dataset_path=request.dataset_path,
+        app_name=request.app_name,
     )
     return {"task_id": task_id, "status": "STARTED"}
 

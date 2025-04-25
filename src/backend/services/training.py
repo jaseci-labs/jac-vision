@@ -89,7 +89,7 @@ def retreive_captioned_dataset():
         raise HTTPException(status_code=500, detail="Dataset loading failed")
 
 
-def train_model(model_name: str, task_id: str, dataset_path: str):
+def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str):
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
     json_file_path = os.path.join("jsons", f"{dataset_path}.json")
@@ -167,7 +167,7 @@ def train_model(model_name: str, task_id: str, dataset_path: str):
         log_history = trainer.state.log_history
 
         print("[SAVING MODEL] Saving model and tokenizer.")
-        task_path = f"outputs/{task_id}"
+        task_path = f"outputs/{app_name}"
         model.save_pretrained(
             task_path,
             safe_serialization=True,

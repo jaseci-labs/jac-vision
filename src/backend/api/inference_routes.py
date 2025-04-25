@@ -17,10 +17,10 @@ async def get_finetuned_models():
 
 
 @router.post("/load-model")
-async def load_finetuned_model(task_id: str = Form(...)):
+async def load_finetuned_model(app_name: str = Form(...)):
     try:
-        load_model(task_id)
-        return {"message": f"Model {task_id} loaded successfully"}
+        load_model(app_name)
+        return {"message": f"Model {app_name} loaded successfully"}
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -29,7 +29,7 @@ async def load_finetuned_model(task_id: str = Form(...)):
 async def process_inference(
     image: UploadFile = File(None),
     question: str = Form(...),
-    task_id: str = Form(...),
+    app_name: str = Form(...),
 ):
     try:
         image_content = await image.read() if image else None
@@ -37,7 +37,7 @@ async def process_inference(
             Image.open(BytesIO(image_content)).convert("RGB") if image_content else None
         )
 
-        result = process_vqa(task_id, image_obj, question)
+        result = process_vqa(app_name, image_obj, question)
         return {"answer": result}
     except Exception as e:
         raise HTTPException(500, str(e))

@@ -19,8 +19,8 @@ def list_models():
     }
 
 
-def load_model(task_id):
-    task_path = os.path.join("outputs", task_id)
+def load_model(app_name):
+    task_path = os.path.join("outputs", app_name)
 
     model, tokenizer = FastVisionModel.from_pretrained(
         model_name=task_path,
@@ -28,15 +28,15 @@ def load_model(task_id):
     )
     FastVisionModel.for_inference(model)
 
-    loaded_models[task_id] = (model, tokenizer)
+    loaded_models[app_name] = (model, tokenizer)
     return model, tokenizer
 
 
-def process_vqa(task_id, image, question):
-    if task_id not in loaded_models:
-        load_model(task_id)
+def process_vqa(app_name, image, question):
+    if app_name not in loaded_models:
+        load_model(app_name)
 
-    model, tokenizer = loaded_models[task_id]
+    model, tokenizer = loaded_models[app_name]
 
     messages = [
         {
