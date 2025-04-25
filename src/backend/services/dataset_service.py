@@ -46,12 +46,7 @@ DEFAULT_PROMPT = (
 caption_workflow_state = {
     "custom_prompt": DEFAULT_PROMPT,
     "current_job": None,
-    "progress": {
-        "total": 0,
-        "processed": 0,
-        "failed": 0,
-        "errors": []
-    }
+    "progress": {"total": 0, "processed": 0, "failed": 0, "errors": []},
 }
 
 
@@ -256,13 +251,14 @@ async def auto_annotate_task(
         )
         logger.info("Auto-annotation task has ended")
 
+
 def process_image_with_prompt(
     image_path: str,
     relative_path: str,
     prompt: str,
     api_key: str,
     model: str = "google/gemma-3-12b-it:free",
-    max_retries: int = 3
+    max_retries: int = 3,
 ) -> Optional[str]:
     for attempt in range(max_retries):
         try:
@@ -272,15 +268,20 @@ def process_image_with_prompt(
             # Build the API request payload
             payload = {
                 "model": model,
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {
-                            "url": f"data:image/jpeg;base64,{image_base64}"
-                        }}
-                    ]
-                }]
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{image_base64}"
+                                },
+                            },
+                        ],
+                    }
+                ],
             }
 
             # Set up headers with dynamic API key
@@ -288,15 +289,12 @@ def process_image_with_prompt(
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
                 "HTTP-Referer": SITE_URL,
-                "X-Title": SITE_NAME
+                "X-Title": SITE_NAME,
             }
 
             # Make the API request
             response = requests.post(
-                OPENROUTER_URL,
-                headers=headers,
-                data=json.dumps(payload),
-                timeout=30
+                OPENROUTER_URL, headers=headers, data=json.dumps(payload), timeout=30
             )
             response.raise_for_status()
 
@@ -308,6 +306,6 @@ def process_image_with_prompt(
             logging.error(f"Attempt {attempt+1} failed for {relative_path}: {str(e)}")
             if attempt == max_retries - 1:
                 return None
-            time.sleep(2 ** attempt)  # Exponential backoff
+            time.sleep(2**attempt)  # Exponential backoff
 
     return None

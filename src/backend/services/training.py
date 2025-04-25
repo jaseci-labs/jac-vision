@@ -189,7 +189,12 @@ def train_model(model_name: str, task_id: str, dataset_path: str):
 
 
 def train_model_with_goal(
-    task_id: str, model_name: str, dataset_id: str, goal_type: str, target: str, dataset_path: str
+    task_id: str,
+    model_name: str,
+    dataset_id: str,
+    goal_type: str,
+    target: str,
+    dataset_path: str,
 ):
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")

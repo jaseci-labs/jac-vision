@@ -97,8 +97,10 @@ class AnnotationStatusResponse(BaseModel):
     current_image: Optional[str]
     errors: List[str]
 
+
 class PromptRequest(BaseModel):
     prompt: str
+
 
 class PreviewResponse(BaseModel):
     image_path: str

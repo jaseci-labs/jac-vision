@@ -8,16 +8,21 @@ from io import BytesIO
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
-from schemas.models import AutoAnnotateRequest, CaptionRequest, PreviewResponse, PromptRequest
+from schemas.models import (
+    AutoAnnotateRequest,
+    CaptionRequest,
+    PreviewResponse,
+    PromptRequest,
+)
 from services.dataset_service import (
     DEFAULT_PROMPT,
     auto_annotate_task,
     auto_annotation_status,
+    caption_workflow_state,
     get_all_images,
     load_existing_data,
     process_image,
-    caption_workflow_state,
-    process_image_with_prompt
+    process_image_with_prompt,
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -213,13 +218,18 @@ async def get_annotation_status():
 async def get_default_prompt():
     return {"prompt": caption_workflow_state["custom_prompt"]}
 
+
 @router.post("/captioning/set-prompt")
 async def set_custom_prompt(request: PromptRequest):
     caption_workflow_state["custom_prompt"] = request.prompt
     return {"message": "Prompt updated successfully"}
 
+
 @router.get("/captioning/preview")
-async def preview_captioning(file_path: str, api_key: str = "",):
+async def preview_captioning(
+    file_path: str,
+    api_key: str,
+):
     if not api_key:
         raise HTTPException(400, "API key is required")
     if not file_path:
@@ -242,12 +252,11 @@ async def preview_captioning(file_path: str, api_key: str = "",):
         )
         print(f"Preview generated for image: {relative_path}")
         return PreviewResponse(
-            image_path=relative_path,
-            caption=caption,
-            prompt_used=prompt
+            image_path=relative_path, caption=caption, prompt_used=prompt
         )
     except Exception as e:
         raise HTTPException(500, f"Preview failed: {str(e)}")
+
 
 async def auto_caption_task(api_key: str, api_type: str, model: str, file_path: str):
     print("Starting auto_caption_task")  # Debug statement
@@ -257,7 +266,7 @@ async def auto_caption_task(api_key: str, api_type: str, model: str, file_path: 
         "total": len(image_files),
         "processed": 0,
         "failed": 0,
-        "errors": []
+        "errors": [],
     }
 
     prompt = caption_workflow_state["custom_prompt"] or DEFAULT_PROMPT
@@ -267,17 +276,16 @@ async def auto_caption_task(api_key: str, api_type: str, model: str, file_path: 
     print(f"JSON file path: {json_file_path}")  # Debug statement
 
     for idx, (image_path, relative_path) in enumerate(image_files):
-        print(f"Processing image {idx + 1}/{len(image_files)}: {relative_path}")  # Debug statement
+        print(
+            f"Processing image {idx + 1}/{len(image_files)}: {relative_path}"
+        )  # Debug statement
         try:
             caption = process_image_with_prompt(
-                image_path,
-                relative_path,
-                prompt,
-                api_key,
-                api_type,
-                model
+                image_path, relative_path, prompt, api_key, api_type, model
             )
-            print(f"Generated caption for {relative_path}: {caption}")  # Debug statement
+            print(
+                f"Generated caption for {relative_path}: {caption}"
+            )  # Debug statement
 
             # Save caption
             existing_data = load_existing_data()
@@ -300,12 +308,13 @@ async def auto_caption_task(api_key: str, api_type: str, model: str, file_path: 
 
     print("auto_caption_task completed")  # Debug statement
 
+
 @router.post("/captioning/start-auto")
 async def start_auto_captioning(
     background_tasks: BackgroundTasks,
     api_key: str = Form(...),
     api_type: str = Form(...),
-    model: str = Form("google/gemma-3-12b-it:free")
+    model: str = Form("google/gemma-3-12b-it:free"),
 ):
     print("Received request to start auto captioning")  # Debug statement
     if caption_workflow_state["current_job"]:
@@ -313,17 +322,13 @@ async def start_auto_captioning(
         raise HTTPException(400, "Captioning job already in progress")
 
     print("Starting background task for auto captioning")  # Debug statement
-    background_tasks.add_task(
-        auto_caption_task,
-        api_key,
-        api_type,
-        model
-    )
+    background_tasks.add_task(auto_caption_task, api_key, api_type, model)
     return {"message": "Auto captioning started"}
+
 
 @router.get("/captioning/progress")
 async def get_captioning_progress():
     return {
         "status": "running" if caption_workflow_state["current_job"] else "idle",
-        "progress": caption_workflow_state["progress"]
+        "progress": caption_workflow_state["progress"],
     }
