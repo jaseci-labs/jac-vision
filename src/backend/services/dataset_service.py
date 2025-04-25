@@ -33,8 +33,18 @@ auto_annotation_status: Dict[str, Any] = {
     "errors": [],
 }
 
+DEFAULT_PROMPT = (
+    "Describe a car's condition in one paragraph for a car damage dataset, based on the provided image. "
+    "If visible damage exists, detail the type, the specific parts affected, the severity, and notable aspects like "
+    "the damage location. If no damage is visible, state that clearly and include the car’s "
+    "overall condition and any relevant observations. Ensure the description is clear, precise, and avoids assumptions "
+    "beyond the image content. Do not include introductory phrases like 'Here is a description,' 'Based on the image,' "
+    "'This image shows,' or any reference to the image itself and statements like 'further inspection is needed'; "
+    "focus solely on the car's state in a direct, standalone manner."
+)
+
 caption_workflow_state = {
-    "custom_prompt": None,
+    "custom_prompt": DEFAULT_PROMPT,
     "current_job": None,
     "progress": {
         "total": 0,
@@ -43,16 +53,6 @@ caption_workflow_state = {
         "errors": []
     }
 }
-
-DEFAULT_PROMPT = (
-    "Describe a car’s condition in one paragraph for a car damage dataset, based on the provided image. "
-    "If visible damage exists, detail the type, the specific parts affected, the severity, and notable aspects like "
-    "the damage location. If no damage is visible, state that clearly and include the car’s "
-    "overall condition and any relevant observations. Ensure the description is clear, precise, and avoids assumptions "
-    "beyond the image content. Do not include introductory phrases like 'Here is a description,' 'Based on the image,' "
-    "'This image shows,' or any reference to the image itself and statements like 'further inspection is needed'; "
-    "focus solely on the car’s state in a direct, standalone manner."
-)
 
 
 def load_existing_data(file_path: str):

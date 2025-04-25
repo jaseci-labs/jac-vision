@@ -211,7 +211,7 @@ async def get_annotation_status():
 
 @router.get("/captioning/default-prompt")
 async def get_default_prompt():
-    return {"prompt": DEFAULT_PROMPT}
+    return {"prompt": caption_workflow_state["custom_prompt"]}
 
 @router.post("/captioning/set-prompt")
 async def set_custom_prompt(request: PromptRequest):
@@ -219,9 +219,9 @@ async def set_custom_prompt(request: PromptRequest):
     return {"message": "Prompt updated successfully"}
 
 @router.get("/captioning/preview")
-async def preview_captioning():
+async def preview_captioning(file_path: str):
     print("Starting preview_captioning endpoint")  # Debug statement
-    image_files = get_all_images()
+    image_files = get_all_images(file_path)
     if not image_files:
         raise HTTPException(400, "No images available for preview")
 
