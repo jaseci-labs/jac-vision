@@ -48,8 +48,8 @@ async def start_finetuning(
     return {"task_id": task_id, "status": "STARTED"}
 
 
-@router.post("/tune-with-goal")
-async def train_with_goal(
+@router.post("/finetune-with-goal")
+async def finetune_with_goal(
     request: GoalTrainingRequest, background_tasks: BackgroundTasks
 ):
     task_id = str(uuid.uuid4())
@@ -61,6 +61,7 @@ async def train_with_goal(
             request.dataset_path,
             request.goal_type,
             request.target,
+            request.app_name,
         )
         return {"task_id": task_id, "status": "STARTED"}
     except Exception as e:

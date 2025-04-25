@@ -89,11 +89,18 @@ def retreive_captioned_dataset():
         raise HTTPException(status_code=500, detail="Dataset loading failed")
 
 
-def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str):
+def train_model(
+    model_name: str,
+    task_id: str,
+    dataset_path: str,
+    app_name: str
+):
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
+
     json_file_path = os.path.join("jsons", f"{dataset_path}.json")
     root_folder = os.path.join("datasets", dataset_path)
+
     if not os.path.exists(json_file_path) or not os.path.exists(root_folder):
         raise HTTPException(status_code=404, detail="Dataset not found")
 
@@ -115,7 +122,7 @@ def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str)
             lora_dropout=0,
             bias="none",
             random_state=3407,
-            use_rslora=False,  # We support rank stabilized LoRA
+            use_rslora=False,
             loftq_config=None,
             # r=16,
             # lora_alpha=16,
@@ -191,13 +198,23 @@ def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str)
 def train_model_with_goal(
     task_id: str,
     model_name: str,
-    dataset_id: str,
+    dataset_path: str,
     goal_type: str,
     target: str,
-    dataset_path: str,
+    app_name: str,
 ):
+
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
+
+    json_file_path = os.path.join("jsons", f"{dataset_path}.json")
+    root_folder = os.path.join("datasets", dataset_path)
+
+    if not os.path.exists(json_file_path) or not os.path.exists(root_folder):
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    task_status[task_id] = {"status": "RUNNING", "progress": 0, "error": None}
+    converted_dataset = get_custom_dataset(json_file_path, root_folder)
 
     try:
         config = load_model_config(model_name, goal_type, target)
@@ -224,13 +241,15 @@ def train_model_with_goal(
             lora_dropout=0,
             bias="none",
             random_state=3407,
+            random_state=3407,
+            use_rslora=False,
+            loftq_config=None,
         )
 
         print("[MODEL INIT] Model and tokenizer loaded successfully.")
-        json_file_path = os.path.join("jsons", f"{dataset_path}.json")
-        root_folder = os.path.join("datasets", dataset_path)
-        train_dataset = get_custom_dataset(json_file_path, root_folder)
-
+        train_dataset, eval_dataset = train_test_split(
+            converted_dataset, test_size=0.2, random_state=42
+        )
         FastVisionModel.for_training(model)
 
         trainer = SFTTrainer(
@@ -238,9 +257,12 @@ def train_model_with_goal(
             tokenizer=tokenizer,
             data_collator=UnslothVisionDataCollator(model, tokenizer),
             train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            compute_metrics=compute_metrics,
             args=SFTConfig(
                 per_device_train_batch_size=config["batch_size"],
                 gradient_accumulation_steps=4,
+                warmup_steps=5,
                 max_steps=config["epochs"],
                 learning_rate=config["learning_rate"],
                 fp16=not is_bf16_supported() if config["mixed_precision"] else False,
@@ -251,7 +273,7 @@ def train_model_with_goal(
                     if "8bit" in config["optimizer"].lower()
                     else "adamw_torch"
                 ),
-                output_dir=f"outputs/{task_id}",
+                output_dir=f"outputs/{app_name}",
                 remove_unused_columns=False,
                 dataset_kwargs={"skip_prepare_dataset": True},
                 dataset_num_proc=4,
@@ -260,19 +282,29 @@ def train_model_with_goal(
             ),
         )
 
-        print("[TRAINING] Starting training with selected config...")
-
+        print("[TRAINING] Starting training...")
         trainer.add_callback(ProgressCallback(task_id, trainer.args.max_steps))
         trainer.train()
 
-        stats = print_training_summary(trainer)
         print("[TRAINING COMPLETE] Training completed successfully.")
+        stats = print_training_summary(trainer)
+        log_history = trainer.state.log_history
+
+        print("[SAVING MODEL] Saving model and tokenizer.")
+        task_path = f"outputs/{app_name}"
+        model.save_pretrained(
+            task_path,
+            safe_serialization=True,
+            save_adapter=True,  # Critical for PEFT
+        )
+        tokenizer.save_pretrained(task_path)
 
         task_status[task_id] = {
             "status": "COMPLETED",
             "progress": 100,
             "error": None,
             "metrics": stats,
+            "log_history": log_history,
         }
         trained_models[task_id] = (model, tokenizer)
 
