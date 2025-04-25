@@ -259,8 +259,10 @@ async def preview_captioning(
 
 
 async def auto_caption_task(api_key: str, model: str, file_path: str):
+
     print("Starting auto_caption_task")  # Debug statement
-    image_files = get_all_images()
+    image_files = get_all_images(file_path)
+    
     print(f"Found {len(image_files)} images for captioning")  # Debug statement
     caption_workflow_state["progress"] = {
         "total": len(image_files),
@@ -316,6 +318,7 @@ async def auto_caption_task(api_key: str, model: str, file_path: str):
 async def start_auto_captioning(
     background_tasks: BackgroundTasks,
     api_key: str = Form(...),
+    file_path: str = Form(...),
     model: str = Form("google/gemma-3-12b-it:free"),
 ):
     print("Received request to start auto captioning")  # Debug statement
@@ -324,7 +327,7 @@ async def start_auto_captioning(
         raise HTTPException(400, "Captioning job already in progress")
 
     print("Starting background task for auto captioning")  # Debug statement
-    background_tasks.add_task(auto_caption_task, api_key, model)
+    background_tasks.add_task(auto_caption_task, api_key, model, file_path)
     return {"message": "Auto captioning started"}
 
 
