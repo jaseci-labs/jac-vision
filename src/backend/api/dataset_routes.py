@@ -198,7 +198,9 @@ async def preview_captioning(
             image_path,
             relative_path,
             prompt,
-            api_key=api_key,
+            api_key,
+            api_type,
+            model,
         )
         print(f"Preview generated for image: {relative_path}")
         return PreviewResponse(
@@ -242,6 +244,8 @@ async def auto_caption_task(
                 relative_path,
                 prompt,
                 api_key,
+                api_type,
+                model,
             )
             print(f"Generated caption for {relative_path}: {caption}")
 
