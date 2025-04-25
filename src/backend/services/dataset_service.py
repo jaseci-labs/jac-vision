@@ -100,7 +100,7 @@ def process_image(
                     "X-Title": SITE_NAME,
                 }
                 response = requests.post(
-                    OPENROUTER_URL, headers=headers, data=json.dumps(payload)
+                    OPENROUTER_URL, headers=headers, data=json.dumps(payload), timeout=30
                 )
                 response.raise_for_status()
                 result = response.json()
@@ -133,7 +133,7 @@ def process_image(
                     "Content-Type": "application/json",
                 }
                 response = requests.post(
-                    OPENAI_URL, headers=headers, data=json.dumps(payload)
+                    OPENAI_URL, headers=headers, data=json.dumps(payload), timeout=30
                 )
                 response.raise_for_status()
                 result = response.json()
@@ -227,7 +227,7 @@ def process_image_with_prompt(
                     "X-Title": SITE_NAME,
                 }
                 response = requests.post(
-                    OPENROUTER_URL, headers=headers, data=json.dumps(payload)
+                    OPENROUTER_URL, headers=headers, data=json.dumps(payload), timeout=30
                 )
                 response.raise_for_status()
                 result = response.json()
@@ -261,7 +261,7 @@ def process_image_with_prompt(
                     "Content-Type": "application/json",
                 }
                 response = requests.post(
-                    OPENAI_URL, headers=headers, data=json.dumps(payload)
+                    OPENAI_URL, headers=headers, data=json.dumps(payload), timeout=30
                 )
                 response.raise_for_status()
                 result = response.json()

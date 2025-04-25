@@ -204,7 +204,7 @@ async def preview_captioning(
         )
         print(f"Preview generated for image: {relative_path}")
         return PreviewResponse(
-            image_path=relative_path, caption=caption, prompt_used=prompt
+            image_path=relative_path, caption=caption.caption, prompt_used=prompt
         )
     except Exception as e:
         raise HTTPException(500, f"Preview failed: {str(e)}")
@@ -249,7 +249,7 @@ async def auto_caption_task(
                 print(f"Generated caption for {relative_path}: {caption}")
 
                 request = CaptionRequest(
-                    dataset_path=file_path, image_path=relative_path, caption=caption
+                    dataset_path=file_path, image_path=relative_path, caption=caption.caption
                 )
                 await save_caption(request)
                 print(f"Caption saved for {relative_path}")
@@ -277,6 +277,7 @@ async def start_auto_captioning(
     background_tasks: BackgroundTasks,
     api_key: str = Form(...),
     file_path: str = Form(...),
+    api_type: str = Form("openrouter"),
     model: str = Form("google/gemma-3-12b-it:free"),
 ):
     print("Received request to start auto captioning")
@@ -285,7 +286,7 @@ async def start_auto_captioning(
         raise HTTPException(400, "Captioning job already in progress")
 
     print("Starting background task for auto captioning")
-    background_tasks.add_task(auto_caption_task, api_key, model, file_path)
+    background_tasks.add_task(auto_caption_task, api_key, file_path, api_type, model,)
     return {"message": "Auto captioning started"}
 
 
