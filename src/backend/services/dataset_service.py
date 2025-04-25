@@ -24,15 +24,6 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 # root_folder = "datasets/CarDataset"
 # json_file_path = "jsons/car_damage_data.json"
 
-auto_annotation_status: Dict[str, Any] = {
-    "running": False,
-    "processed": 0,
-    "failed": 0,
-    "current_image": None,
-    "total_images": 0,
-    "errors": [],
-}
-
 DEFAULT_PROMPT = (
     "Describe a car's condition in one paragraph for a car damage dataset, based on the provided image. "
     "If visible damage exists, detail the type, the specific parts affected, the severity, and notable aspects like "
@@ -199,73 +190,17 @@ def get_all_images(dataset_path):
     return image_files
 
 
-async def auto_annotate_task(
-    dataset_path: str, api_key: str, api_type: str, model: str
-):
-    global auto_annotation_status
-    try:
-        auto_annotation_status["running"] = True
-        image_files = get_all_images(dataset_path)
-        auto_annotation_status["total_images"] = len(image_files)
-
-        logger.info(f"Starting auto-annotation of {len(image_files)} images")
-
-        while image_files:
-            image_path, relative_path = image_files[0]
-            auto_annotation_status["current_image"] = relative_path
-
-            try:
-                result = process_image(
-                    image_path, relative_path, api_key, api_type, model
-                )
-                if result:
-                    existing_data = load_existing_data(dataset_path)
-                    existing_data.append(
-                        {"image": relative_path, "caption": result.caption}
-                    )
-                    json_file_path = os.path.join("jsons", dataset_path)
-                    with open(json_file_path, "w") as f:
-                        json.dump(existing_data, f)
-                    auto_annotation_status["processed"] += 1
-                    logger.info(f"Processed {relative_path} successfully")
-                else:
-                    auto_annotation_status["failed"] += 1
-                    logger.warning(f"Failed to process {relative_path}")
-            except Exception as e:
-                auto_annotation_status["failed"] += 1
-                error_msg = f"{relative_path}: {str(e)}"
-                auto_annotation_status["errors"].append(error_msg)
-                logger.error(error_msg)
-
-            # Remove processed image from queue
-            image_files = get_all_images(dataset_path)
-            await asyncio.sleep(1)
-
-        logger.info("Auto-annotation completed successfully")
-    finally:
-        auto_annotation_status.update(
-            {
-                "running": False,
-                "current_image": None,
-            }
-        )
-        logger.info("Auto-annotation task has ended")
-
-
 def process_image_with_prompt(
     image_path: str,
     relative_path: str,
     prompt: str,
     api_key: str,
     model: str = "google/gemma-3-12b-it:free",
-    max_retries: int = 3,
 ) -> Optional[str]:
-    for attempt in range(max_retries):
+    for attempt in range(MAX_RETRIES):
         try:
-            # Encode image to base64
             image_base64 = encode_image(image_path)
 
-            # Build the API request payload
             payload = {
                 "model": model,
                 "messages": [
@@ -284,7 +219,6 @@ def process_image_with_prompt(
                 ],
             }
 
-            # Set up headers with dynamic API key
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
@@ -292,20 +226,16 @@ def process_image_with_prompt(
                 "X-Title": SITE_NAME,
             }
 
-            # Make the API request
             response = requests.post(
                 OPENROUTER_URL, headers=headers, data=json.dumps(payload), timeout=30
             )
             response.raise_for_status()
 
-            # Extract and return the caption
             result = response.json()
             return result["choices"][0]["message"]["content"]
 
         except Exception as e:
             logging.error(f"Attempt {attempt+1} failed for {relative_path}: {str(e)}")
-            if attempt == max_retries - 1:
-                return None
-            time.sleep(2**attempt)  # Exponential backoff
-
-    return None
+            if attempt < MAX_RETRIES - 1:
+                continue
+            return None

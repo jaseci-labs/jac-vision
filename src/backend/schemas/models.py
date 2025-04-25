@@ -91,13 +91,6 @@ class AutoAnnotateRequest(BaseModel):
     model: str = "google/gemma-3-12b-it:free"
 
 
-class AnnotationStatusResponse(BaseModel):
-    status: str
-    progress: dict
-    current_image: Optional[str]
-    errors: List[str]
-
-
 class PromptRequest(BaseModel):
     prompt: str
 
