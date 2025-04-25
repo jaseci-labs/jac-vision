@@ -162,18 +162,18 @@ async def clear_data(file_path: str = ""):
     return {"message": "All data cleared successfully"}
 
 
-@router.get("/captioning/default-prompt")
+@router.get("/get-default-prompt")
 async def get_default_prompt():
     return {"prompt": caption_workflow_state["custom_prompt"]}
 
 
-@router.post("/captioning/set-prompt")
+@router.post("/set-prompt")
 async def set_custom_prompt(request: PromptRequest):
     caption_workflow_state["custom_prompt"] = request.prompt
     return {"message": "Prompt updated successfully"}
 
 
-@router.get("/captioning/preview")
+@router.get("/show-captioning-preview")
 async def preview_captioning(
     file_path: str,
     api_key: str, # Use OpenRouter API key for preview
@@ -267,7 +267,7 @@ async def auto_caption_task(
     print("auto_caption_task completed")
 
 
-@router.post("/captioning/start-auto")
+@router.post("/start-auto-captioning")
 async def start_auto_captioning(
     background_tasks: BackgroundTasks,
     api_key: str = Form(...),
@@ -284,7 +284,7 @@ async def start_auto_captioning(
     return {"message": "Auto captioning started"}
 
 
-@router.get("/captioning/progress")
+@router.get("/auto-captioning-progress")
 async def get_captioning_progress():
     return {
         "status": "running" if caption_workflow_state["current_job"] else "idle",
