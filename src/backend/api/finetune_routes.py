@@ -94,17 +94,16 @@ def stream_status(task_id: str):
             # Send update if new epoch metrics are available
             if "epoch_metrics" in status and status["epoch_metrics"]["epoch"] > last_epoch:
                 last_epoch = status["epoch_metrics"]["epoch"]
-                yield f"data: {json.dumps({
+                yield f"data: {json.dumps({{
                     'type': 'epoch_update',
                     'data': status['epoch_metrics']
-                })}\n\n"
+                }})}\n\n"
 
-            # Existing status updates
             sanitized_status = {k: v for k, v in status.items() if k != "model"}
-            yield f"data: {json.dumps({
+            yield f"data: {json.dumps({{
                 'type': 'status_update',
                 'data': sanitized_status
-            })}\n\n"
+            }})}\n\n"
 
             if status["status"] in ["COMPLETED", "FAILED"]:
                 break
