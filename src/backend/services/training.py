@@ -49,6 +49,35 @@ def retreive_captioned_dataset():
         raise HTTPException(status_code=500, detail="Dataset loading failed")
 
 
+def save_training_log(model_name, config, metrics):
+    log_data = {
+        "model": model_name,
+        "batch_size": config["batch_size"],
+        "learning_rate": config["learning_rate"],
+        "epochs": config["epochs"],
+        "peak_memory_gb": metrics.get("peak_memory_gb", 0),
+        "training_time": metrics.get("train_runtime_minutes", 0),
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    print(f"[LOG DATA]: {log_data}")
+
+    log_file = os.path.join("src/backend/configs", "adapt_training_logs.csv")
+
+    try:
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+
+        if not os.path.exists(log_file):
+            pd.DataFrame([log_data]).to_csv(log_file, index=False)
+            print(f"New training log created at {log_file}")
+        else:
+            pd.DataFrame([log_data]).to_csv(log_file, mode='a', header=False, index=False)
+            print(f"Appended to training log at {log_file}")
+
+    except Exception as e:
+        print(f"Failed to save training log: {str(e)}")
+
+
 def train_model(
     model_name: str,
     task_id: str,
@@ -398,6 +427,8 @@ def train_adapt_model(
         trained_models[task_id] = (model, tokenizer)
 
         print("[SAVING TRAINING LOG] Saving training log.")
+        print(task_status[task_id]["status"])
+        print(task_status[task_id]["metrics"])
 
         if task_status[task_id]["status"] == "COMPLETED":
             save_training_log(
@@ -408,32 +439,3 @@ def train_adapt_model(
 
     except Exception as e:
         task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}
-
-
-def save_training_log(model_name, config, metrics):
-    log_data = {
-        "model": model_name,
-        "batch_size": config["batch_size"],
-        "learning_rate": config["learning_rate"],
-        "epochs": config["epochs"],
-        "peak_memory_gb": metrics.get("peak_memory_gb", 0),
-        "training_time": metrics.get("train_runtime_minutes", 0),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-    print(f"[LOG DATA]: {log_data}")
-
-    log_file = os.path.join("src/backend/configs", "adapt_training_logs.csv")
-
-    try:
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
-
-        if not os.path.exists(log_file):
-            pd.DataFrame([log_data]).to_csv(log_file, index=False)
-            print(f"New training log created at {log_file}")
-        else:
-            pd.DataFrame([log_data]).to_csv(log_file, mode='a', header=False, index=False)
-            print(f"Appended to training log at {log_file}")
-
-    except Exception as e:
-        print(f"Failed to save training log: {str(e)}")
