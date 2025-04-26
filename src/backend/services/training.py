@@ -295,7 +295,7 @@ def train_adapt_model(
         "epochs": epochs or config.get("epochs", 10),
     }
 
-    print(f"Final config: {final_config}")
+    print(f"[FINAL CONFIG]: {final_config}")
 
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
@@ -420,7 +420,15 @@ def save_training_log(model_name, config, metrics):
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    log_file = os.path.join("configs", "adapt_training_logs.xlsx")
+    print(f"{"LOG DATA"}: {log_data}")
+
+    log_file = os.path.join("src/backend/configs", "adapt_training_logs.xlsx")
+
+    if not os.path.exists(log_file):
+        df = pd.DataFrame(columns=log_data.keys())
+        df.to_excel(log_file, index=False)
+
+        print(f"Training log file created at {log_file}.")
 
     try:
         if os.path.exists(log_file):
