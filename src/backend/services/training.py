@@ -67,7 +67,7 @@ def train_model(
 
     try:
         model, tokenizer = FastVisionModel.from_pretrained(
-            model_name, load_in_4bit=True, use_gradient_checkpointing="unsloth"
+            model_name, load_in_4bit=True, use_gradient_checkpointing="unsloth",
         )
         model = FastVisionModel.get_peft_model(
             model,
@@ -120,10 +120,10 @@ def train_model(
                 lr_scheduler_type="cosine",  # linear
                 max_seq_length=2048,
                 report_to="none",
-                evaluation_strategy="epoch",
-                per_device_eval_batch_size=2,
-                load_best_model_at_end=True,
-                metric_for_best_model="eval_loss",
+                # evaluation_strategy="epoch",
+                # per_device_eval_batch_size=2,
+                # load_best_model_at_end=True,
+                # metric_for_best_model="eval_loss",
             ),
         )
 

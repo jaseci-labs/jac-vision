@@ -13,7 +13,7 @@ async def get_system_info():
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage("/")
         timestamp = str(datetime.now())
-        logger.debug("Fetched system info")
+        print("Fetched system info")
         return {
             "timestamp": timestamp,
             "cpu_usage_percent": cpu_usage,
