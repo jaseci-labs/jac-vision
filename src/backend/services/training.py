@@ -84,9 +84,6 @@ def train_model(
             loftq_config=None,
             # r=16,
             # lora_alpha=16,
-            # lora_dropout=0,
-            # bias="none",
-            # random_state=3407,
         )
 
         print("[MODEL INIT] Model and tokenizer loaded successfully.")
@@ -120,10 +117,11 @@ def train_model(
                 lr_scheduler_type="cosine",  # linear
                 max_seq_length=2048,
                 report_to="none",
-                # evaluation_strategy="epoch",
-                # per_device_eval_batch_size=2,
-                # load_best_model_at_end=True,
-                # metric_for_best_model="eval_loss",
+                eval_strategy="epoch",
+                save_strategy="epoch",
+                per_device_eval_batch_size=2,
+                load_best_model_at_end=True,
+                metric_for_best_model="eval_loss",
             ),
         )
 

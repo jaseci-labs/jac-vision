@@ -105,15 +105,17 @@ def print_training_summary(trainer):
 
 
 def compute_metrics(eval_preds):
-    predictions, labels = eval_preds
-    predictions = predictions.argmax(axis=-1)
-    acc = accuracy_score(labels, predictions)
+    predictions, labels, _ = eval_preds  # Add third element for losses
 
-    loss = None
-    if isinstance(eval_preds, tuple) and len(eval_preds) >= 3:
-        loss = eval_preds[2].mean().item()
+    if isinstance(predictions, tuple):
+        logits = predictions[0]  # Some models return (logits, ...)
+    else:
+        logits = predictions
+
+    predictions = logits.argmax(axis=-1)
+    acc = accuracy_score(labels, predictions)
 
     return {
         "eval_accuracy": acc,
-        "eval_loss": loss,
+        "eval_loss": None,  # Add if you need to track loss
     }
