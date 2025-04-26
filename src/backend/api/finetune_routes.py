@@ -81,6 +81,7 @@ def check_status(task_id: str):
         "metrics": status.get("metrics", {}),
     }
 
+
 @router.get("/stream-status/{task_id}")
 def stream_status(task_id: str):
     def event_generator():
@@ -92,20 +93,21 @@ def stream_status(task_id: str):
                 break
 
             # Send epoch updates
-            if "epoch_metrics" in status and status["epoch_metrics"]["epoch"] > last_epoch:
+            if (
+                "epoch_metrics" in status
+                and status["epoch_metrics"]["epoch"] > last_epoch
+            ):
                 last_epoch = status["epoch_metrics"]["epoch"]
-                epoch_data = json.dumps({
-                    "type": "epoch_update",
-                    "data": status["epoch_metrics"]
-                })
+                epoch_data = json.dumps(
+                    {"type": "epoch_update", "data": status["epoch_metrics"]}
+                )
                 yield f"data: {epoch_data}\n\n"
 
             # Send regular status updates
             sanitized_status = {k: v for k, v in status.items() if k != "model"}
-            status_data = json.dumps({
-                "type": "status_update",
-                "data": sanitized_status
-            })
+            status_data = json.dumps(
+                {"type": "status_update", "data": sanitized_status}
+            )
             yield f"data: {status_data}\n\n"
 
             if status["status"] in ["COMPLETED", "FAILED"]:

@@ -5,7 +5,12 @@ import traceback
 from datasets import load_dataset
 from fastapi import HTTPException
 from PIL import Image
-from services.training_metrics import compute_metrics, print_training_summary, task_status, ProgressCallback
+from services.training_metrics import (
+    ProgressCallback,
+    compute_metrics,
+    print_training_summary,
+    task_status,
+)
 from sklearn.model_selection import train_test_split
 from trl import SFTConfig, SFTTrainer
 from unsloth import FastVisionModel, is_bf16_supported
@@ -197,7 +202,6 @@ def train_model_with_goal(
             lora_alpha=16,
             lora_dropout=0,
             bias="none",
-            random_state=3407,
             random_state=3407,
             use_rslora=False,
             loftq_config=None,

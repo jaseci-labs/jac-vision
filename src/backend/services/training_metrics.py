@@ -53,13 +53,12 @@ class ProgressCallback(TrainerCallback):
     def on_epoch_end(self, args, state, control, **kwargs):
         train_metrics = {
             "training_loss": state.log_history[-1].get("loss"),
-            "training_accuracy": state.log_history[-1].get("train_accuracy")
+            "training_accuracy": state.log_history[-1].get("train_accuracy"),
         }
 
-        eval_metrics = next((
-            log for log in reversed(state.log_history)
-            if "eval_loss" in log
-        ), None)
+        eval_metrics = next(
+            (log for log in reversed(state.log_history) if "eval_loss" in log), None
+        )
 
         if eval_metrics:
             task_status[self.task_id]["epoch_metrics"] = {
@@ -67,7 +66,7 @@ class ProgressCallback(TrainerCallback):
                 "training_loss": train_metrics["training_loss"],
                 "training_accuracy": train_metrics["training_accuracy"],
                 "validation_loss": eval_metrics.get("eval_loss"),
-                "validation_accuracy": eval_metrics.get("eval_accuracy")
+                "validation_accuracy": eval_metrics.get("eval_accuracy"),
             }
 
         self.current_epoch += 1
@@ -111,7 +110,7 @@ def compute_metrics(eval_preds):
     acc = accuracy_score(labels, predictions)
 
     loss = None
-    if isinstance(eval_preds, tuple) and len(eval_preds) >=3:
+    if isinstance(eval_preds, tuple) and len(eval_preds) >= 3:
         loss = eval_preds[2].mean().item()
 
     return {
