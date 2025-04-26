@@ -409,6 +409,7 @@ def train_adapt_model(
     except Exception as e:
         task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}
 
+
 def save_training_log(model_name, config, metrics):
     log_data = {
         "model": model_name,
@@ -420,25 +421,19 @@ def save_training_log(model_name, config, metrics):
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    print(f"{"LOG DATA"}: {log_data}")
+    print(f"[LOG DATA]: {log_data}")
 
-    log_file = os.path.join("src/backend/configs", "adapt_training_logs.xlsx")
-
-    if not os.path.exists(log_file):
-        df = pd.DataFrame(columns=log_data.keys())
-        df.to_excel(log_file, index=False)
-
-        print(f"Training log file created at {log_file}.")
+    log_file = os.path.join("src/backend/configs", "adapt_training_logs.csv")
 
     try:
-        if os.path.exists(log_file):
-            df = pd.read_excel(log_file)
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+
+        if not os.path.exists(log_file):
+            pd.DataFrame([log_data]).to_csv(log_file, index=False)
+            print(f"New training log created at {log_file}")
         else:
-            df = pd.DataFrame(columns=log_data.keys())
+            pd.DataFrame([log_data]).to_csv(log_file, mode='a', header=False, index=False)
+            print(f"Appended to training log at {log_file}")
 
-        df = pd.concat([df, pd.DataFrame([log_data])], ignore_index=True)
-        df.to_excel(log_file, index=False)
-
-        print(f"Training log saved successfully to {log_file}.")
     except Exception as e:
         print(f"Failed to save training log: {str(e)}")
