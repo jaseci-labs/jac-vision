@@ -5,14 +5,8 @@ import traceback
 from datasets import load_dataset
 from fastapi import HTTPException
 from PIL import Image
-from services.training_metrics import compute_metrics, print_training_summary
+from services.training_metrics import compute_metrics, print_training_summary, task_status, ProgressCallback
 from sklearn.model_selection import train_test_split
-from transformers import (
-    TrainerCallback,
-    TrainerControl,
-    TrainerState,
-    TrainingArguments,
-)
 from trl import SFTConfig, SFTTrainer
 from unsloth import FastVisionModel, is_bf16_supported
 from unsloth.trainer import UnslothVisionDataCollator
@@ -28,48 +22,7 @@ AVAILABLE_MODELS = [
     "unsloth/Pixtral-12B-2409",
 ]
 
-task_status = {}
 trained_models = {}
-
-
-class ProgressCallback(TrainerCallback):
-    def __init__(self, task_id: str, total_steps: int):
-        self.task_id = task_id
-        self.total_steps = total_steps
-
-    def on_step_end(
-        self,
-        args: TrainingArguments,
-        state: TrainerState,
-        control: TrainerControl,
-        **kwargs,
-    ):
-        progress = int((state.global_step / self.total_steps) * 100)
-        task_status[self.task_id] = {
-            "status": "RUNNING",
-            "progress": progress,
-            "loss": state.log_history[-1].get("loss") if state.log_history else None,
-            "learning_rate": (
-                state.log_history[-1].get("learning_rate")
-                if state.log_history
-                else None
-            ),
-            "epoch": state.epoch,
-            "error": None,
-        }
-
-    def on_train_begin(self, args, state, control, **kwargs):
-        task_status[self.task_id] = {
-            "status": "RUNNING",
-            "progress": 0,
-            "loss": None,
-            "learning_rate": None,
-            "epoch": 0,
-            "error": None,
-        }
-
-    def on_train_end(self, args, state, control, **kwargs):
-        task_status[self.task_id].update({"status": "COMPLETED", "progress": 100})
 
 
 def retreive_captioned_dataset():
@@ -162,6 +115,10 @@ def train_model(
                 lr_scheduler_type="cosine",  # linear
                 max_seq_length=2048,
                 report_to="none",
+                evaluation_strategy="epoch",
+                per_device_eval_batch_size=2,
+                load_best_model_at_end=True,
+                metric_for_best_model="eval_loss",
             ),
         )
 

@@ -73,22 +73,42 @@ def check_status(task_id: str):
     status = task_status.get(task_id)
     if not status:
         raise HTTPException(status_code=404, detail="Task not found")
-    return {k: v for k, v in status.items() if k != "model"}
-
+    return {
+        "status": status.get("status"),
+        "progress": status.get("progress"),
+        "epoch_metrics": status.get("epoch_metrics"),
+        "current_epoch": status.get("current_epoch", 0),
+        "metrics": status.get("metrics", {}),
+    }
 
 @router.get("/stream-status/{task_id}")
 def stream_status(task_id: str):
     def event_generator():
+        last_epoch = -1
         while True:
             status = task_status.get(task_id)
             if not status:
                 yield f"data: {json.dumps({'error': 'Task not found'})}\n\n"
                 break
+
+            # Send update if new epoch metrics are available
+            if "epoch_metrics" in status and status["epoch_metrics"]["epoch"] > last_epoch:
+                last_epoch = status["epoch_metrics"]["epoch"]
+                yield f"data: {json.dumps({
+                    'type': 'epoch_update',
+                    'data': status['epoch_metrics']
+                })}\n\n"
+
+            # Existing status updates
             sanitized_status = {k: v for k, v in status.items() if k != "model"}
-            yield f"data: {json.dumps(sanitized_status)}\n\n"
+            yield f"data: {json.dumps({
+                'type': 'status_update',
+                'data': sanitized_status
+            })}\n\n"
+
             if status["status"] in ["COMPLETED", "FAILED"]:
                 break
-            time.sleep(2)
+            time.sleep(1)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
