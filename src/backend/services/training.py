@@ -3,10 +3,10 @@ import json
 import os
 import traceback
 
+import pandas as pd
 from datasets import load_dataset
 from fastapi import HTTPException
 from PIL import Image
-import pandas as pd
 from services.training_metrics import (
     ProgressCallback,
     compute_metrics,
@@ -57,7 +57,7 @@ def save_training_log(model_name, config, metrics):
         "epochs": config["epochs"],
         "peak_memory_gb": metrics.get("peak_memory_gb", 0),
         "training_time": metrics.get("train_runtime_minutes", 0),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
     print(f"[LOG DATA]: {log_data}")
@@ -71,19 +71,16 @@ def save_training_log(model_name, config, metrics):
             pd.DataFrame([log_data]).to_csv(log_file, index=False)
             print(f"New training log created at {log_file}")
         else:
-            pd.DataFrame([log_data]).to_csv(log_file, mode='a', header=False, index=False)
+            pd.DataFrame([log_data]).to_csv(
+                log_file, mode="a", header=False, index=False
+            )
             print(f"Appended to training log at {log_file}")
 
     except Exception as e:
         print(f"Failed to save training log: {str(e)}")
 
 
-def train_model(
-    model_name: str,
-    task_id: str,
-    dataset_path: str,
-    app_name: str
-):
+def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str):
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
 
@@ -98,7 +95,9 @@ def train_model(
 
     try:
         model, tokenizer = FastVisionModel.from_pretrained(
-            model_name, load_in_4bit=True, use_gradient_checkpointing="unsloth",
+            model_name,
+            load_in_4bit=True,
+            use_gradient_checkpointing="unsloth",
         )
         model = FastVisionModel.get_peft_model(
             model,
@@ -340,7 +339,9 @@ def train_adapt_model(
 
     try:
         model, tokenizer = FastVisionModel.from_pretrained(
-            model_name, load_in_4bit=True, use_gradient_checkpointing="unsloth",
+            model_name,
+            load_in_4bit=True,
+            use_gradient_checkpointing="unsloth",
         )
         model = FastVisionModel.get_peft_model(
             model,
@@ -431,11 +432,7 @@ def train_adapt_model(
         print(task_status[task_id]["metrics"])
 
         if task_status[task_id]["status"] == "COMPLETED":
-            save_training_log(
-                model_name,
-                final_config,
-                task_status[task_id]["metrics"]
-            )
+            save_training_log(model_name, final_config, task_status[task_id]["metrics"])
 
     except Exception as e:
         task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}

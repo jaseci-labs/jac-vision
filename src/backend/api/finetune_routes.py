@@ -49,10 +49,10 @@ async def start_finetuning(
     )
     return {"task_id": task_id, "status": "STARTED"}
 
+
 @router.post("/start-adapt-finetune")
 async def start_adapt_finetuning(
-    request: AdaptFineTuningRequest,
-    background_tasks: BackgroundTasks
+    request: AdaptFineTuningRequest, background_tasks: BackgroundTasks
 ):
     task_id = str(uuid.uuid4())
     background_tasks.add_task(
