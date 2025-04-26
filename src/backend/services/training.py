@@ -295,6 +295,8 @@ def train_adapt_model(
         "epochs": epochs or config.get("epochs", 10),
     }
 
+    print(f"Final config: {final_config}")
+
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
 
@@ -395,6 +397,8 @@ def train_adapt_model(
         }
         trained_models[task_id] = (model, tokenizer)
 
+        print("[SAVING TRAINING LOG] Saving training log.")
+
         if task_status[task_id]["status"] == "COMPLETED":
             save_training_log(
                 model_name,
@@ -426,5 +430,7 @@ def save_training_log(model_name, config, metrics):
 
         df = pd.concat([df, pd.DataFrame([log_data])], ignore_index=True)
         df.to_excel(log_file, index=False)
+
+        print(f"Training log saved successfully to {log_file}.")
     except Exception as e:
         print(f"Failed to save training log: {str(e)}")
