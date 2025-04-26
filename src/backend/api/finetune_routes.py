@@ -91,19 +91,22 @@ def stream_status(task_id: str):
                 yield f"data: {json.dumps({'error': 'Task not found'})}\n\n"
                 break
 
-            # Send update if new epoch metrics are available
+            # Send epoch updates
             if "epoch_metrics" in status and status["epoch_metrics"]["epoch"] > last_epoch:
                 last_epoch = status["epoch_metrics"]["epoch"]
-                yield f"data: {json.dumps({{
-                    'type': 'epoch_update',
-                    'data': status['epoch_metrics']
-                }})}\n\n"
+                epoch_data = json.dumps({
+                    "type": "epoch_update",
+                    "data": status["epoch_metrics"]
+                })
+                yield f"data: {epoch_data}\n\n"
 
+            # Send regular status updates
             sanitized_status = {k: v for k, v in status.items() if k != "model"}
-            yield f"data: {json.dumps({{
-                'type': 'status_update',
-                'data': sanitized_status
-            }})}\n\n"
+            status_data = json.dumps({
+                "type": "status_update",
+                "data": sanitized_status
+            })
+            yield f"data: {status_data}\n\n"
 
             if status["status"] in ["COMPLETED", "FAILED"]:
                 break
