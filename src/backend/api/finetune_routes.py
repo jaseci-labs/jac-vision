@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
 from schemas.models import (
+    AdaptFineTuningRequest,
     FineTuningRequest,
     GGUFSaveRequest,
     GoalTrainingRequest,
@@ -15,6 +16,7 @@ from services.training import (
     AVAILABLE_MODELS,
     retreive_captioned_dataset,
     task_status,
+    train_adapt_model,
     train_model,
     train_model_with_goal,
     trained_models,
@@ -44,6 +46,24 @@ async def start_finetuning(
         task_id=task_id,
         dataset_path=request.dataset_path,
         app_name=request.app_name,
+    )
+    return {"task_id": task_id, "status": "STARTED"}
+
+@router.post("/start-adapt-finetune")
+async def start_adapt_finetuning(
+    request: AdaptFineTuningRequest,
+    background_tasks: BackgroundTasks
+):
+    task_id = str(uuid.uuid4())
+    background_tasks.add_task(
+        train_adapt_model,
+        model_name=request.model_name,
+        task_id=task_id,
+        dataset_path=request.dataset_path,
+        app_name=request.app_name,
+        batch_size=request.batch_size,
+        learning_rate=request.learning_rate,
+        epochs=request.epochs,
     )
     return {"task_id": task_id, "status": "STARTED"}
 

@@ -31,6 +31,28 @@ default_configs = {
     },
 }
 
+adaptive_configs = {
+    "unsloth/Llama-3.2-11B-Vision-bnb-4bit": {
+        "batch_size": 4,
+        "learning_rate": 2e-5,
+        "epochs": 10,
+    },
+    "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit": {
+        "batch_size": 8,
+        "learning_rate": 3e-4,
+        "epochs": 8,
+    },
+    "unsloth/Pixtral-12B-2409": {
+        "batch_size": 4,
+        "learning_rate": 2e-5,
+        "epochs": 10,
+    },
+}
+
+
+def get_adaptive_config(model_name: str) -> dict:
+    return adaptive_configs.get(model_name, {})
+
 
 def load_model_config(model_name: str, goal_type: str, target: str) -> dict:
     filename_map = {

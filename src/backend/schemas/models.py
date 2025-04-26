@@ -99,3 +99,12 @@ class PreviewResponse(BaseModel):
     image_path: str
     caption: str
     prompt_used: str
+
+
+class AdaptFineTuningRequest(BaseModel):
+    model_name: str
+    dataset_path: str
+    app_name: str
+    batch_size: Optional[int] = None
+    learning_rate: Optional[float] = None
+    epochs: Optional[int] = None
