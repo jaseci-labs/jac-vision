@@ -86,7 +86,8 @@ async def get_next_image(
     if not image_files:
         return {"done": True, "message": "All images have been processed!"}
     image_path, relative_path = image_files[0]
-    image_data = process_image(image_path, relative_path, api_key, api_type, model)
+    prompt = caption_workflow_state["custom_prompt"] or DEFAULT_PROMPT
+    image_data = process_image_with_prompt(image_path, relative_path, prompt, api_key, api_type, model)
     if image_data:
         return {
             "image_path": relative_path,

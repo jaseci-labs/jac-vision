@@ -204,7 +204,6 @@ def process_image_with_prompt(
     for attempt in range(MAX_RETRIES):
         try:
             image_base64 = encode_image(image_path)
-
             if api_type.lower() == "openrouter":
                 payload = {
                     "model": model,  # Use the model passed from the frontend
