@@ -112,15 +112,23 @@ async def save_caption(request: CaptionRequest):
 
 @router.get("/download-dataset")
 async def download_dataset(file_path: str):
-    json_file_path = os.path.join("jsons", file_path)
+    dataset_path = os.path.join("datasets", file_path)
+
+    if not os.path.exists(dataset_path):
+        raise HTTPException(status_code=404, detail="Dataset path not found")
+
     buffer = BytesIO()
-    with zipfile.ZipFile(buffer, "w") as zip_file:
-        if os.path.exists(json_file_path):
-            zip_file.write(json_file_path)
-        for root, _, files in os.walk("datasets/CarDataset"):
-            for file in files:
-                zip_file.write(os.path.join(root, file))
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        if os.path.isfile(dataset_path):
+            zip_file.write(dataset_path, arcname=os.path.basename(dataset_path))
+        else:
+            for root, _, files in os.walk(dataset_path):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    arcname = os.path.relpath(full_path, start=dataset_path)
+                    zip_file.write(full_path, arcname=arcname)
     buffer.seek(0)
+
     return StreamingResponse(
         buffer,
         media_type="application/zip",
@@ -130,7 +138,7 @@ async def download_dataset(file_path: str):
 
 @router.get("/download-json")
 async def download_json(file_path: str):
-    json_file_path = os.path.join("jsons", file_path)
+    json_file_path = os.path.join("jsons", f"{file_path}.json")
     if not os.path.exists(json_file_path):
         raise HTTPException(status_code=404, detail="JSON file not found")
     return FileResponse(
@@ -147,14 +155,14 @@ async def serve_image(filename: str, folder_path: str = ""):
 
 
 @router.get("/get-json")
-async def get_json():
-    return {"data": load_existing_data()}
+async def get_json(file_path: str):
+    return {"data": load_existing_data(file_path)}
 
 
 @router.delete("/clear-data")
 async def clear_data(file_path: str = ""):
     root_folder = os.path.join("datasets", file_path)
-    json_file_path = os.path.join("jsons", file_path)
+    json_file_path = os.path.join("jsons", f"{file_path}.json")
     if os.path.exists(json_file_path):
         os.remove(json_file_path)
     if os.path.exists(root_folder):
