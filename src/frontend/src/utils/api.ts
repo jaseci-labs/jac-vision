@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = "https://q3botw6lrkyilj-4000.proxy.runpod.net";
+export const API_URL = "http://localhost:4000";
 
 // Define TypeScript interfaces for API responses
 export interface Model {
@@ -81,36 +81,8 @@ interface DeleteVqaHistoryResponse {
 interface ClearVqaHistoryResponse {
   message: string;
 }
-
-interface UploadImageFolderResponse {
-  message: string;
-  folder_name: string;
-}
-
-interface GetNextImageResponse {
-  done?: boolean;
-  message?: string;
-  image_path?: string;
-  caption?: string;
-  total?: number;
-}
-
-interface SaveCaptionRequest {
-  caption: string;
-  image_path: string;
-  dataset_path: string;
-}
-
-interface SaveCaptionResponse {
-  message: string;
-}
-
 interface DownloadDatasetResponse {
   message?: string;
-}
-
-interface GetJsonResponse {
-  data: any;
 }
 
 interface ClearDataResponse {
@@ -338,89 +310,7 @@ export const finetuneModel = async (model_name: string, dataset_path: string, ap
   }
 };
 
-// Upload image folder for captioning
-export const uploadImageFolder = async (formData: FormData): Promise<UploadImageFolderResponse> => {
-  try {
-    const response = await axios.post(`${API_URL}/api/datasets/upload-image-folder`, formData, {
-      timeout: 60000, // 60 seconds
-    });
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
 
-// Get the next image for captioning
-export const getNextImage = async (dataset_path: string, apiKey: string, apiType: string, model: string = 'google/gemma-3-12b-it:free'): Promise<GetNextImageResponse> => {
-  try {
-    const response = await axios.get(`${API_URL}/api/datasets/get-next-image`, {
-      params: {
-        dataset_path: dataset_path,
-        api_key: apiKey,
-        api_type: apiType,
-        model: model
-      },
-    });
-    console.log('Response from getNextImage:', response.data);
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Save the edited caption
-export const saveCaption = async (request: SaveCaptionRequest): Promise<SaveCaptionResponse> => {
-  try {
-    const response = await axios.post(`${API_URL}/api/datasets/save-caption`, request);
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Download the JSON file
-export const downloadJson = async (): Promise<Blob> => {
-  try {
-    const response = await axios.get(`${API_URL}/api/datasets/download-json`, {
-      responseType: "blob",
-    });
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Download the dataset as a ZIP file
-export const downloadDataset = async (): Promise<Blob> => {
-  try {
-    const response = await axios.get(`${API_URL}/api/datasets/download-dataset`, {
-      responseType: 'blob',
-    });
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Get the JSON data for preview
-export const getJson = async (): Promise<GetJsonResponse> => {
-  try {
-    const response = await axios.get(`${API_URL}/api/datasets/get-json`);
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Clear all data
-export const clearData = async (): Promise<ClearDataResponse> => {
-  try {
-    const response = await axios.delete(`${API_URL}/api/datasets/clear-data`);
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
 
 export const getTaskStatus = async (taskId: string) => {
   try {
