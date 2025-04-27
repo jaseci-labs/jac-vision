@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import json
 import os
 import traceback
@@ -7,7 +7,7 @@ import pandas as pd
 from datasets import load_dataset
 from fastapi import HTTPException
 from PIL import Image
-from services.training_metrics import (
+from training_metrics import (
     ProgressCallback,
     compute_metrics,
     print_training_summary,
@@ -57,25 +57,29 @@ def save_training_log(model_name, config, metrics):
         "epochs": config["epochs"],
         "peak_memory_gb": metrics.get("peak_memory_gb", 0),
         "training_time": metrics.get("train_runtime_minutes", 0),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
     print(f"[LOG DATA]: {log_data}")
 
-    log_file = os.path.join("src/backend/configs", "adapt_training_logs.csv")
+    log_file = os.path.join("src/backend/configs", "adapt_training_logs.xlsx")
+
+    if not os.path.exists(log_file):
+        df = pd.DataFrame(columns=log_data.keys())
+        df.to_excel(log_file, index=False)
+
+        print(f"Training log file created at {log_file}.")
 
     try:
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
-
-        if not os.path.exists(log_file):
-            pd.DataFrame([log_data]).to_csv(log_file, index=False)
-            print(f"New training log created at {log_file}")
+        if os.path.exists(log_file):
+            df = pd.read_excel(log_file)
         else:
-            pd.DataFrame([log_data]).to_csv(
-                log_file, mode="a", header=False, index=False
-            )
-            print(f"Appended to training log at {log_file}")
+            df = pd.DataFrame(columns=log_data.keys())
 
+        df = pd.concat([df, pd.DataFrame([log_data])], ignore_index=True)
+        df.to_excel(log_file, index=False)
+
+        print(f"Training log saved successfully to {log_file}.")
     except Exception as e:
         print(f"Failed to save training log: {str(e)}")
 
