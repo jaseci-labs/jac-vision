@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Stack,
   Box,
@@ -37,53 +37,68 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { API_URL } from "../utils/api";
+import { useImageCaptioningAppState } from "../utils/imageCaptioningStore";
 
 interface ImageCaptioningProps {
   toast: typeof toast;
 }
 
-interface ImageData {
-  image_path: string;
-  caption: string;
-  total: number;
-}
-
 const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
-  const [apiKey, setApiKey] = useState<string>(
-    localStorage.getItem("captionApiKey") || ""
-  );
-  const [apiType, setApiType] = useState<"openrouter" | "openai" | "gemini">(
-    "openrouter"
-  );
-  const [openRouterModel, setOpenRouterModel] = useState<string>(
-    "google/gemma-3-12b-it:free"
-  );
-  const [showApiKey, setShowApiKey] = useState<boolean>(false);
-  const [testApiKeyLoading, setTestApiKeyLoading] = useState<boolean>(false);
-  const [imageFolder, setImageFolder] = useState<File | null>(null);
-  const [uploadLoading, setUploadLoading] = useState<boolean>(false);
-  const [downloadLoading, setDownloadLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
-  const [datasetName, setDatasetName] = useState<string>("");
-  const [imageData, setImageData] = useState<ImageData | null>(null);
-  const [caption, setCaption] = useState<string>("");
-  const [saveLoading, setSaveLoading] = useState<boolean>(false);
-  const [jsonData, setJsonData] = useState<any>(null);
-  const [showJsonPreview, setShowJsonPreview] = useState<boolean>(false);
-  const [openClearDialog, setOpenClearDialog] = useState<boolean>(false);
-  const [apiDialogOpen, setApiDialogOpen] = useState(false);
-  const [autoCaption, setAutoCaption] = useState(false);
-  const [prompt, setPrompt] = useState('Describe the damage in this car image');
-  const [captionLoading, setCaptionLoading] = useState(false);
-  const [editedPrompt, setEditedPrompt] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
+  const {
+    apiKey,
+    setApiKey,
+    apiType,
+    setApiType,
+    openRouterModel,
+    setOpenRouterModel,
+    showApiKey,
+    setShowApiKey,
+    testApiKeyLoading,
+    setTestApiKeyLoading,
+    imageFolder,
+    setImageFolder,
+    uploadLoading,
+    setUploadLoading,
+    downloadLoading,
+    setDownloadLoading,
+    error,
+    setError,
+    datasetName,
+    setDatasetName,
+    imageData,
+    setImageData,
+    caption,
+    setCaption,
+    saveLoading,
+    setSaveLoading,
+    jsonData,
+    setJsonData,
+    showJsonPreview,
+    setShowJsonPreview,
+    openClearDialog,
+    setOpenClearDialog,
+    apiDialogOpen,
+    setApiDialogOpen,
+    autoCaption,
+    setAutoCaption,
+    prompt,
+    setPrompt,
+    captionLoading,
+    setCaptionLoading,
+    editedPrompt,
+    setEditedPrompt,
+    isEditing,
+    setIsEditing,
+    captioningProgress,
+    setCaptioningProgress,
+    captioningStatus,
+    setCaptioningStatus,
+    showProgressOverlay,
+    setShowProgressOverlay
+  } = useImageCaptioningAppState((state) => state);
+
   const promptFieldRef = useRef<HTMLInputElement | null>(null);
   const captionFieldRef = useRef<HTMLInputElement | null>(null);
-  const [captioningProgress, setCaptioningProgress] = useState(0);
-  const [captioningStatus, setCaptioningStatus] = useState<String>('idle');
-  const [showProgressOverlay, setShowProgressOverlay] = useState(false);
-
-
   const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
   const openRouterModels = [
