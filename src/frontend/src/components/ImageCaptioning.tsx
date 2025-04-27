@@ -271,7 +271,8 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "car_damage_dataset.zip");
+      const datasetName = localStorage.getItem('datasetName') || 'dataset';
+      link.setAttribute("download", `${datasetName}.zip`);
       document.body.appendChild(link);
       link.click();
       link.remove();

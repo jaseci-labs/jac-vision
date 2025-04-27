@@ -109,7 +109,8 @@ export const downloadDataset = async (): Promise<Blob> => {
         const response = await axios.get(`${API_URL}/api/datasets/download-dataset`, {
             params: {
                 file_path: localStorage.getItem('datasetName')
-            }
+            },
+            responseType: 'blob'
         });
         return response.data;
     } catch (error) {
