@@ -16,6 +16,5 @@ huggingface_hub
 pydantic
 python-multipart
 scikit-learn
-sqlite3
 sentence-transformers
 bert-score

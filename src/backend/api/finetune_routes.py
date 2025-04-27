@@ -21,10 +21,26 @@ from services.training import (
     train_model_with_goal,
     trained_models,
 )
-from utils.config_loader import adaptive_configs
 
 router = APIRouter()
 
+adaptive_configs = {
+    "unsloth/Llama-3.2-11B-Vision-bnb-4bit": {
+        "batch_size": 4,
+        "learning_rate": 2e-5,
+        "epochs": 10,
+    },
+    "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit": {
+        "batch_size": 8,
+        "learning_rate": 3e-4,
+        "epochs": 8,
+    },
+    "unsloth/Pixtral-12B-2409": {
+        "batch_size": 4,
+        "learning_rate": 2e-5,
+        "epochs": 10,
+    },
+}
 
 @router.get("/models")
 def get_models():
