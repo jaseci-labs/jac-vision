@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = "http://localhost:4000";
+export const API_URL = "https://ft5y41il2b5wwa-4000.proxy.runpod.net";
 
 interface UploadImageFolderResponse {
     message: string;
@@ -93,7 +93,9 @@ export const saveCaption = async (request: SaveCaptionRequest): Promise<SaveCapt
 export const downloadJson = async (): Promise<Blob> => {
     try {
         const response = await axios.get(`${API_URL}/api/datasets/download-json`, {
-            responseType: "blob",
+            params: {
+                file_path: localStorage.getItem('datasetName')
+            }
         });
         return response.data;
     } catch (error) {
@@ -105,7 +107,9 @@ export const downloadJson = async (): Promise<Blob> => {
 export const downloadDataset = async (): Promise<Blob> => {
     try {
         const response = await axios.get(`${API_URL}/api/datasets/download-dataset`, {
-            responseType: 'blob',
+            params: {
+                file_path: localStorage.getItem('datasetName')
+            }
         });
         return response.data;
     } catch (error) {
@@ -115,8 +119,16 @@ export const downloadDataset = async (): Promise<Blob> => {
 
 // Get the JSON data for preview
 export const getJson = async (): Promise<GetJsonResponse> => {
+    const datasetPath = localStorage.getItem('datasetName');
+    if (!datasetPath) {
+        throw new Error('Dataset path not found in local storage');
+    }
     try {
-        const response = await axios.get(`${API_URL}/api/datasets/get-json`);
+        const response = await axios.get(`${API_URL}/api/datasets/get-json`, {
+            params: {
+                file_path: datasetPath
+            }
+        });
         return response.data;
     } catch (error) {
         return handleApiError(error);
@@ -126,7 +138,12 @@ export const getJson = async (): Promise<GetJsonResponse> => {
 // Clear all data
 export const clearData = async (): Promise<ClearDataResponse> => {
     try {
-        const response = await axios.delete(`${API_URL}/api/datasets/clear-data`);
+        const response = await axios.delete(`${API_URL}/api/datasets/clear-data`, {
+            params: {
+                file_path: localStorage.getItem('datasetName')
+            }
+        }
+        );
         return response.data;
     } catch (error) {
         return handleApiError(error);
@@ -136,7 +153,6 @@ export const clearData = async (): Promise<ClearDataResponse> => {
 export const loadPrompts = async (): Promise<LoadPromptsResponse> => {
     try {
         const response = await axios.get(`${API_URL}/api/datasets/get-default-prompt`);
-        console.log('Response from loadPrompts:', response.data);
         return response.data;
     } catch (error) {
         return handleApiError(error);

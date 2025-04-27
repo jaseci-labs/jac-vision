@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = "http://localhost:4000";
+export const API_URL = "https://ft5y41il2b5wwa-4000.proxy.runpod.net";
 
 // Define TypeScript interfaces for API responses
 export interface Model {

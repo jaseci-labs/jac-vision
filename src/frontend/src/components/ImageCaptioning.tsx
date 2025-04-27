@@ -102,12 +102,6 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
   }, [apiKey]);
 
   useEffect(() => {
-    if (caption) {
-      console.log("Caption:", caption);
-    }
-  }, [caption]);
-
-  useEffect(() => {
     const fetchPrompt = async () => {
       const prompt = await loadPrompts();
       setPrompt(prompt.prompt);
@@ -208,6 +202,8 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       if (data.done) {
         setImageData(null);
         toast.success(data.message);
+        setImageData(null);
+        await handlePreviewJson();
       } else {
         setImageData({
           image_path: data.image_path ?? "",
@@ -347,12 +343,13 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
     }
   };
 
-  const handleEditClick = () => {
+  const handleEditClick = async () => {
     setEditedPrompt(prompt);
     setIsEditing(true);
   };
 
-  const handleUpdatePrompt = () => {
+  const handleUpdatePrompt = async () => {
+    console.log("Updated prompt:", editedPrompt);
     setPrompt(editedPrompt);
     const response = changePrompt(editedPrompt);
     setIsEditing(false);
@@ -373,6 +370,12 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       setShowProgressOverlay(true);
     } else {
       setShowProgressOverlay(false);
+      if (progress.percentage === 100) {
+        toast.success("Captioning completed successfully");
+        setCaptioningProgress(0);
+        setImageData(null);
+        await handlePreviewJson();
+      }
     }
   }
 
