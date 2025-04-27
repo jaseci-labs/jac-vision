@@ -21,6 +21,7 @@ from services.training import (
     train_model_with_goal,
     trained_models,
 )
+from utils.config_loader import adaptive_configs
 
 router = APIRouter()
 
@@ -173,4 +174,19 @@ def get_training_metrics(task_id: str):
         "status": status.get("status"),
         "metrics": status.get("metrics", {}),
         "log_history": status.get("log_history", []),
+    }
+
+@router.get("/adaptive-config/{model_name}")
+async def get_adaptive_config(model_name: str):
+    config = adaptive_configs.get(model_name)
+    if not config:
+        raise HTTPException(
+            status_code=404,
+            detail="Model not found in adaptive configurations"
+        )
+    return {
+        "model": model_name,
+        "batch_size": config["batch_size"],
+        "learning_rate": config["learning_rate"],
+        "epochs": config["epochs"]
     }
