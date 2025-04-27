@@ -341,6 +341,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
 
     if (response["message"] == "Auto captioning started") {
       setCaptioningStatus('running');
+      setCaptionLoading(true);
     }
   };
 
@@ -374,6 +375,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       if (progress.percentage === 100) {
         toast.success("Captioning completed successfully");
         setCaptioningProgress(0);
+        setCaptionLoading(false);
         setImageData(null);
         await handlePreviewJson();
       }
@@ -840,7 +842,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       {showProgressOverlay && (
         <Box
           sx={{
-            position: 'absolute',
+            position: 'fixed',
             top: 0,
             left: 0,
             width: '100%',
