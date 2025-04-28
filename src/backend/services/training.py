@@ -1,4 +1,3 @@
-from sklearn.base import accuracy_score
 from unsloth import FastVisionModel, is_bf16_supported
 from unsloth.trainer import UnslothVisionDataCollator
 from datetime import datetime
@@ -12,6 +11,7 @@ from fastapi import HTTPException
 from PIL import Image
 from services.training_metrics import (
     ProgressCallback,
+    compute_metrics,
     print_training_summary,
     task_status,
 )
@@ -31,16 +31,6 @@ AVAILABLE_MODELS = [
 ]
 
 trained_models = {}
-
-def compute_metrics(eval_pred):
-    predictions, labels = eval_pred
-    if predictions.ndim == 2:  # Classification models
-        predictions = predictions.argmax(axis=-1)
-    else:  # Regression models
-        predictions = predictions.squeeze()
-
-    acc = accuracy_score(labels, predictions)
-    return {"accuracy": acc}
 
 
 def retreive_captioned_dataset():
@@ -147,7 +137,7 @@ def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str)
             data_collator=UnslothVisionDataCollator(model, tokenizer),
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
-            compute_metrics=compute_metrics,
+            # compute_metrics=compute_metrics,
             args=SFTConfig(
                 per_device_train_batch_size=2,
                 gradient_accumulation_steps=4,

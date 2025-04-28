@@ -51,15 +51,25 @@ class ProgressCallback(TrainerCallback):
         task_status[self.task_id].update({"status": "COMPLETED", "progress": 100})
 
     def on_epoch_end(self, args, state, control, **kwargs):
-        eval_metrics = state.log_history[-1]
-
-        task_status[self.task_id]["epoch_metrics"] = {
-            "epoch": int(state.epoch),
-            "training_loss": state.log_history[-2]["loss"],
-            "training_accuracy": state.log_history[-2].get("train_accuracy", None),
-            "validation_loss": eval_metrics.get("eval_loss", None),
-            "validation_accuracy": eval_metrics.get("eval_accuracy", None)
+        train_metrics = {
+            "training_loss": state.log_history[-1].get("loss"),
+            "training_accuracy": state.log_history[-1].get("train_accuracy"),
         }
+
+        eval_metrics = next(
+            (log for log in reversed(state.log_history) if "eval_loss" in log), None
+        )
+
+        if eval_metrics:
+            task_status[self.task_id]["epoch_metrics"] = {
+                "epoch": self.current_epoch,
+                "training_loss": train_metrics["training_loss"],
+                "training_accuracy": train_metrics["training_accuracy"],
+                "validation_loss": eval_metrics.get("eval_loss"),
+                "validation_accuracy": eval_metrics.get("eval_accuracy"),
+            }
+
+        self.current_epoch += 1
 
 
 def print_training_summary(trainer):
