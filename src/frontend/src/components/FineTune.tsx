@@ -6,6 +6,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { finetuneModel, fetchModels, getTaskStatus, fetchDatasets, API_URL } from '../utils/api';
 import { toast } from 'react-toastify';
 import { useFineTuneStore } from '../utils/FineTuneStore';
+import Graph from './Graphs';
 
 interface FineTuneProps {
   selectedModel: string | null;
@@ -40,6 +41,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     taskId,
     viewProgress,
     logs,
+    epochLogs,
     datasetSize,
     epochs,
     learningRate,
@@ -53,6 +55,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setTaskId,
     setViewProgress,
     setLogs,
+    setEpochLogs,
     setDatasetSize,
     setEpochs,
     setLearningRate,
@@ -106,6 +109,12 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     loadDatasets();
   }, []);
 
+  useEffect(() => {
+    if (epochLogs) {
+      console.log(epochLogs);
+    }
+  }, [epochLogs])
+
 
   useEffect(() => {
     if (!taskId) return;
@@ -113,42 +122,52 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     const eventSource = new EventSource(`${API_URL}/api/finetune/stream-status/${taskId}`);
 
     eventSource.onmessage = (event) => {
-      const taskStatus = JSON.parse(event.data);
-      console.log("Received update:", taskStatus);
+      const taskData = JSON.parse(event.data);
+      if (taskData.type === "status_update") {
+        const taskStatus = taskData;
 
-      if (taskStatus) {
-        setViewProgress(taskStatus.data.progress);
+        console.log("Received update:", taskStatus);
 
-        if (taskStatus.data.progress === 0) {
-          setFineTuneLoading(true);
-        } else {
-          if (taskStatus.data.status === 'COMPLETED') {
-            setFineTuneLoading(false);
-            setFineTuneStatus('Fine-tuning completed successfully!');
-            toast.success('Fine-tuning completed successfully!');
-            eventSource.close();
-          } else if (taskStatus.data.status === 'FAILED') {
-            setFineTuneStatus('Fine-tuning failed.');
-            toast.error('Fine-tuning failed.');
-            setFineTuneLoading(false);
-            eventSource.close();
+        if (taskStatus) {
+          setViewProgress(taskStatus.data.progress);
+
+          if (taskStatus.data.progress === 0) {
+            setFineTuneLoading(true);
+          } else {
+            if (taskStatus.data.status === 'COMPLETED') {
+              setFineTuneLoading(false);
+              setFineTuneStatus('Fine-tuning completed successfully!');
+              toast.success('Fine-tuning completed successfully!');
+              eventSource.close();
+            } else if (taskStatus.data.status === 'FAILED') {
+              setFineTuneStatus('Fine-tuning failed.');
+              toast.error('Fine-tuning failed.');
+              setFineTuneLoading(false);
+              eventSource.close();
+            }
+
+            const currentLogs = useFineTuneStore.getState().logs;
+            setLogs([
+              ...currentLogs,
+              {
+                status: taskStatus.data.status,
+                progress: `${taskStatus.data.progress}%`,
+                epoch: taskStatus.data.epoch || 'N/A',
+                loss: taskStatus.data.loss || 'N/A',
+              },
+            ]);
           }
-
-          const currentLogs = useFineTuneStore.getState().logs;
-          setLogs([
-            ...currentLogs,
-            {
-              status: taskStatus.data.status,
-              progress: `${taskStatus.data.progress}%`,
-              epoch: taskStatus.data.epoch || 'N/A',
-              loss: taskStatus.data.loss || 'N/A',
-            },
-          ]);
         }
-      } else {
-        setLogs([
-          ...logs,
-          { status: 'Error', progress: 'N/A', epoch: 'N/A', loss: 'N/A' },
+      } else if (taskData.type === "epoch_update") {
+        const epochStatus = taskData.data;
+        const currentEpochLogs = useFineTuneStore.getState().epochLogs || [];
+        setEpochLogs([
+          ...currentEpochLogs,
+          {
+            epoch: epochStatus.epoch,
+            training_loss: epochStatus.training_loss,
+            validation_loss: epochStatus.validation_loss ,
+          },
         ]);
       }
     };
@@ -513,6 +532,10 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           </Table>
         </AccordionDetails>
       </Accordion>
+
+      <Box mt={3}>
+        <Graph data={epochLogs} />
+      </Box>
     </Box >
   );
 };
