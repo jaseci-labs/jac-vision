@@ -99,6 +99,7 @@ def process_unfinetuned_vqa(image_content, question, model_name):
         input_text,
         add_special_tokens=False,
         return_tensors="pt",
+        size={"shortest_edge": 512, "longest_edge": 1024}
     ).to("cuda")
 
     text_streamer = TextStreamer(tokenizer, skip_prompt=True)
