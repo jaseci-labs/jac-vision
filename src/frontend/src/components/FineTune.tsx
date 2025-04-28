@@ -109,12 +109,6 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     loadDatasets();
   }, []);
 
-  useEffect(() => {
-    if (epochLogs) {
-      console.log(epochLogs);
-    }
-  }, [epochLogs])
-
 
   useEffect(() => {
     if (!taskId) return;
@@ -125,8 +119,6 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       const taskData = JSON.parse(event.data);
       if (taskData.type === "status_update") {
         const taskStatus = taskData;
-
-        console.log("Received update:", taskStatus);
 
         if (taskStatus) {
           setViewProgress(taskStatus.data.progress);
@@ -152,8 +144,8 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
               {
                 status: taskStatus.data.status,
                 progress: `${taskStatus.data.progress}%`,
-                epoch: taskStatus.data.epoch || 'N/A',
                 loss: taskStatus.data.loss || 'N/A',
+                epoch: taskStatus.data.epoch || 'N/A',
               },
             ]);
           }
@@ -197,10 +189,10 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setError('');
     try {
       setLogs([]);
-      console.log(selectedModel, datasetLink, modelName);
       const response = await finetuneModel(selectedModel, datasetLink, modelName);
       setViewProgress(0);
-      console.log(response.status);
+      setLogs([]);
+      setEpochLogs([]);
       setFineTuneStatus(response.status);
       setTaskId(response["task_id"]);
       localStorage.setItem('taskId', response["task_id"]);
