@@ -19,6 +19,7 @@ from sklearn.model_selection import train_test_split
 from trl import SFTConfig, SFTTrainer
 from utils.config_loader import get_adaptive_config, load_model_config
 from utils.dataset_utils import get_custom_dataset
+from tensorboard.backend.event_processing import event_accumulator
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
 os.environ["UNSLOTH_RETURN_LOGITS"] = "1"
@@ -136,7 +137,7 @@ def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str)
             data_collator=UnslothVisionDataCollator(model, tokenizer),
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
-            compute_metrics=compute_metrics,
+            # compute_metrics=compute_metrics,
             args=SFTConfig(
                 per_device_train_batch_size=2,
                 gradient_accumulation_steps=4,
@@ -147,15 +148,16 @@ def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str)
                 bf16=is_bf16_supported(),
                 logging_steps=1,
                 optim="adamw_8bit",
-                # output_dir=f"outputs/{task_id}",
+                output_dir=f"outputs/{app_name}",
                 remove_unused_columns=False,
                 dataset_kwargs={"skip_prepare_dataset": True},
                 dataset_num_proc=4,
                 lr_scheduler_type="cosine",  # linear
                 max_seq_length=2048,
-                report_to="none",
-                # evaluation_strategy="epoch",
-                # per_device_eval_batch_size=2,
+                report_to="tensorboard",
+                logging_dir=f"logs/{app_name}",
+                eval_strategy="epoch",
+                per_device_eval_batch_size=2,
                 # load_best_model_at_end=True,
                 # metric_for_best_model="eval_loss",
             ),
@@ -184,12 +186,30 @@ def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str)
             "error": None,
             "metrics": stats,
             "log_history": log_history,
+            "log_dir": f"logs/{app_name}",
         }
         trained_models[task_id] = (model, tokenizer)
 
     except Exception as e:
         task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}
 
+def get_tensorboard_logs(app_name: str):
+
+    log_dir = f"logs/{app_name}"
+    ea = event_accumulator.EventAccumulator(log_dir)
+    ea.Reload()
+
+    metrics = {
+        "train": {
+            "loss": [scalar.value for scalar in ea.Scalars("train/loss")],
+            "accuracy": [scalar.value for scalar in ea.Scalars("train/accuracy")],
+        },
+        "eval": {
+            "loss": [scalar.value for scalar in ea.Scalars("eval/loss")],
+            "accuracy": [scalar.value for scalar in ea.Scalars("eval/accuracy")],
+        }
+    }
+    return metrics
 
 def train_model_with_goal(
     task_id: str,

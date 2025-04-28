@@ -14,6 +14,7 @@ from schemas.models import (
 from services.save import save_gguf_model, save_model
 from services.training import (
     AVAILABLE_MODELS,
+    get_tensorboard_logs,
     retreive_captioned_dataset,
     task_status,
     train_adapt_model,
@@ -211,3 +212,10 @@ async def get_adaptive_config(model_name: str):
         "learning_rate": config["learning_rate"],
         "epochs": config["epochs"]
     }
+
+@router.get("/tensorboard-logs/{app_name}")
+async def get_tensorboard_metrics(app_name: str):
+    try:
+        return get_tensorboard_logs(app_name)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
