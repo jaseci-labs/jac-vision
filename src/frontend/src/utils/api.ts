@@ -156,10 +156,10 @@ export const fetchFineTunedModels = async (): Promise<ModelsResponse> => {
 };
 
 // Load a fine-tuned model for inference
-export const loadFineTunedModelForInference = async (task_id: string): Promise<ClearDataResponse> => {
+export const loadFineTunedModelForInference = async (selectedModel: string): Promise<ClearDataResponse> => {
   try {
     const formData = new FormData();
-    formData.append("task_id", task_id);
+    formData.append("app_name", selectedModel);
     const response = await axios.post(`${API_URL}/api/inference/load-model`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -173,12 +173,12 @@ export const loadFineTunedModelForInference = async (task_id: string): Promise<C
 
 // Inference with a fine-tuned model
 export const inferenceWithFineTunedModel = async (
-  task_id: string,
+  app_name: string,
   image: File | null,
   question: string,
 ): Promise<VqaResponse> => {
   const formData = new FormData();
-  formData.append('task_id', task_id);
+  formData.append('app_name', app_name);
   formData.append('question', question);
   if (image) {
     formData.append('image', image);

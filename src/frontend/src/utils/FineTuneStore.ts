@@ -14,6 +14,7 @@ type FineTuneStore = {
   datasetSize: string;
   epochs: string;
   learningRate: string;
+  modelName: string;
   setDatasetLink: (datasetLink: string) => void;
   setFineTuneStatus: (status: string) => void;
   setFineTuneLoading: (loading: boolean) => void;
@@ -26,6 +27,7 @@ type FineTuneStore = {
   setDatasetSize: (size: string) => void;
   setEpochs: (epochs: string) => void;
   setLearningRate: (rate: string) => void;
+  setModelName: (modelName: string) => void;
 };
 
 export const useFineTuneStore = create<FineTuneStore>((set) => ({
@@ -41,6 +43,7 @@ export const useFineTuneStore = create<FineTuneStore>((set) => ({
   datasetSize: '',
   epochs: '',
   learningRate: '',
+  modelName: '',
   setDatasetLink: (datasetLink) => set({ datasetLink }),
   setFineTuneStatus: (status) => set({ fineTuneStatus: status }),
   setFineTuneLoading: (loading) => set({ fineTuneLoading: loading }),
@@ -53,4 +56,5 @@ export const useFineTuneStore = create<FineTuneStore>((set) => ({
   setDatasetSize: (size) => set({ datasetSize: size }),
   setEpochs: (epochs) => set({ epochs }),
   setLearningRate: (rate) => set({ learningRate: rate }),
+  setModelName: (modelName) => set({ modelName }),
 }));

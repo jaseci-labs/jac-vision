@@ -43,6 +43,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     datasetSize,
     epochs,
     learningRate,
+    modelName,
     setDatasetLink,
     setFineTuneStatus,
     setFineTuneLoading,
@@ -55,9 +56,10 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setDatasetSize,
     setEpochs,
     setLearningRate,
+    setModelName,
   } = useFineTuneStore();
 
-  const accordionDetailsRef = useRef(null);
+  const accordionDetailsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (accordionDetailsRef.current) {
@@ -177,7 +179,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     try {
       setLogs([]);
       console.log(selectedModel, datasetLink, "Test");
-      const response = await finetuneModel(selectedModel, datasetLink, "Test");
+      const response = await finetuneModel(selectedModel, datasetLink, modelName);
       setViewProgress(0);
       console.log(response.status);
       setFineTuneStatus(response.status);
@@ -236,11 +238,12 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           flexDirection: { xs: 'column', sm: 'row' },
           gap: 3,
           mb: 4,
+          width: '100%',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
       >
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, width: '100%' }}>
           <Select
             placeholder="Select Model"
             options={modelOptions}
@@ -291,7 +294,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           />
         </Box>
 
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, width: '100%' }}>
           <Select
             placeholder="Select the Dataset"
             options={datasetOptions}
@@ -338,6 +341,26 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
                 ...base,
                 color: '#9CA3AF',
               }),
+            }}
+          />
+        </Box>
+
+        <Box sx={{ flex: 1, width: '100%' }}>
+          <TextField
+            label="Model Name"
+            variant="outlined"
+            value={modelName}
+            onChange={(e) => setModelName(e.target.value)}  // Set the model name
+            fullWidth
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                height: '56px',
+                '& fieldset': { borderColor: '#4B5563' },
+                '&:hover fieldset': { borderColor: '#5B21B6' },
+                '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
+              },
+              '& .MuiInputLabel-root': { color: '#9CA3AF' },
+              '& .MuiInputBase-input': { color: '#E2E8F0' },
             }}
           />
         </Box>
@@ -407,22 +430,26 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         {fineTuneLoading ? <CircularProgress size={24} /> : 'Start Fine-Tuning'}
       </Button>
 
-      {error && (
-        <Typography variant="body1" color="error" sx={{ mt: 2, textAlign: 'center' }}>
-          {error}
-        </Typography>
-      )}
+      {
+        error && (
+          <Typography variant="body1" color="error" sx={{ mt: 2, textAlign: 'center' }}>
+            {error}
+          </Typography>
+        )
+      }
 
-      {fineTuneStatus && !error && (
-        <Typography variant="body1" sx={{ mt: 2, color: '#E2E8F0', textAlign: 'center' }}>
-          {fineTuneStatus}
-          {fineTuneStatus === 'STARTED' && (
-            <Typography variant="body2" sx={{ color: '#9CA3AF', mt: 1 }}>
-              This process may take a few minutes to start. Please be patient.
-            </Typography>
-          )}
-        </Typography>
-      )}
+      {
+        fineTuneStatus && !error && (
+          <Typography variant="body1" sx={{ mt: 2, color: '#E2E8F0', textAlign: 'center' }}>
+            {fineTuneStatus}
+            {fineTuneStatus === 'STARTED' && (
+              <Typography variant="body2" sx={{ color: '#9CA3AF', mt: 1 }}>
+                This process may take a few minutes to start. Please be patient.
+              </Typography>
+            )}
+          </Typography>
+        )
+      }
 
       <Box sx={{ mt: 3 }}>
         {/* Progress Bar */}
@@ -486,7 +513,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           </Table>
         </AccordionDetails>
       </Accordion>
-    </Box>
+    </Box >
   );
 };
 
