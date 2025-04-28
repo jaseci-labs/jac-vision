@@ -119,7 +119,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       if (taskStatus) {
         setViewProgress(taskStatus.data.progress);
 
-        if (taskStatus.progress === 0) {
+        if (taskStatus.data.progress === 0) {
           setFineTuneLoading(true);
         } else {
           if (taskStatus.data.status === 'COMPLETED') {
@@ -178,7 +178,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setError('');
     try {
       setLogs([]);
-      console.log(selectedModel, datasetLink, "Test");
+      console.log(selectedModel, datasetLink, modelName);
       const response = await finetuneModel(selectedModel, datasetLink, modelName);
       setViewProgress(0);
       console.log(response.status);

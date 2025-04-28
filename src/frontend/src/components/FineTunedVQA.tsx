@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Select from 'react-select';
 import { Box, Button, TextField, Typography, CircularProgress, IconButton } from '@mui/material';
 import { ThumbUp, ThumbDown } from '@mui/icons-material';
 import { fetchFineTunedModels, loadFineTunedModelForInference, inferenceWithFineTunedModel } from '../utils/api';
-import { ModelOption } from '../types';
 import { toast } from 'react-toastify';
+import { useFineTunedVQAStore } from '../utils/FineTunedVQAStore';
 
 interface VQAProps {
     selectedModel: string | null;
@@ -13,14 +13,33 @@ interface VQAProps {
 }
 
 const FineTunedVQA: React.FC<VQAProps> = ({ selectedModel, setSelectedModel, toast }) => {
-    const [vqaImage, setVqaImage] = useState<File | null>(null);
-    const [vqaQuestion, setVqaQuestion] = useState<string>('');
-    const [vqaAnswer, setVqaAnswer] = useState<string>('');
-    const [vqaLoading, setVqaLoading] = useState<boolean>(false);
-    const [runModelLoading, setRunModelLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string>('');
-    const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const {
+        vqaImage,
+        setVqaImage,
+        vqaQuestion,
+        setVqaQuestion,
+        vqaAnswer,
+        setVqaAnswer,
+        vqaLoading,
+        setVqaLoading,
+        runModelLoading,
+        setRunModelLoading,
+        error,
+        setError,
+        modelOptions,
+        setModelOptions,
+        imagePreview,
+        setImagePreview
+    } = useFineTunedVQAStore();
+
+    // const [vqaImage, setVqaImage] = useState<File | null>(null);
+    // const [vqaQuestion, setVqaQuestion] = useState<string>('');
+    // const [vqaAnswer, setVqaAnswer] = useState<string>('');
+    // const [vqaLoading, setVqaLoading] = useState<boolean>(false);
+    // const [runModelLoading, setRunModelLoading] = useState<boolean>(false);
+    // const [error, setError] = useState<string>('');
+    // const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
+    // const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     const fetchModels = async () => {
         try {
