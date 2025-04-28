@@ -21,7 +21,7 @@ default_configs = {
         "mixed_precision": True,
         "sequence_length": 3000,
     },
-    "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit": {
+    "unsloth/Qwen2-VL-7B-Instruct-bnb-4bit": {
         "batch_size": 8,
         "learning_rate": 3e-4,
         "epochs": 8,
@@ -37,7 +37,7 @@ adaptive_configs = {
         "learning_rate": 2e-5,
         "epochs": 10,
     },
-    "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit": {
+    "unsloth/Qwen2-VL-7B-Instruct-bnb-4bit": {
         "batch_size": 8,
         "learning_rate": 3e-4,
         "epochs": 8,
@@ -58,7 +58,7 @@ def load_model_config(model_name: str, goal_type: str, target: str) -> dict:
     filename_map = {
         "unsloth/Llama-3.2-11B-Vision-bnb-4bit": "LLaMA_Configs.csv",
         "unsloth/Pixtral-12B-2409": "Pixtral_Configs.csv",
-        "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit": "Qwen_Configs.csv",
+        "unsloth/Qwen2-VL-7B-Instruct-bnb-4bit": "Qwen_Configs.csv",
     }
     csv_file = filename_map.get(model_name)
     if not csv_file:

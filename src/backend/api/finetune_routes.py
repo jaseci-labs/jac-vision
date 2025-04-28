@@ -30,7 +30,7 @@ adaptive_configs = {
         "learning_rate": 2e-5,
         "epochs": 10,
     },
-    "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit": {
+    "unsloth/Qwen2-VL-7B-Instruct-bnb-4bit": {
         "batch_size": 8,
         "learning_rate": 3e-4,
         "epochs": 8,
