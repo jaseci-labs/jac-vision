@@ -4,6 +4,12 @@ from io import BytesIO
 
 from peft import PeftConfig, PeftModel
 from transformers import AutoTokenizer, TextStreamer
+from PIL import Image
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+from bert_score import score as bert_scorer
+
+snt_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 loaded_models = {}
 
@@ -64,3 +70,72 @@ def process_vqa(app_name, image, question):
     )
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+def process_unfinetuned_vqa(image_content, question, model_name):
+    from unsloth import FastVisionModel
+    from transformers import AutoTokenizer
+
+    model, tokenizer = FastVisionModel.from_pretrained(
+        model_name=model_name,
+        load_in_4bit=True,
+    )
+    FastVisionModel.for_inference(model)
+
+    if image_content:
+        image = Image.open(BytesIO(image_content)).convert("RGB")
+    else:
+        raise ValueError("Image content is missing")
+
+    messages = [
+        {
+            "role": "user",
+            "content": [{"type": "image"}, {"type": "text", "text": question}],
+        }
+    ]
+
+    input_text = tokenizer.apply_chat_template(messages, add_generation_prompt=True)
+    inputs = tokenizer(
+        image,
+        input_text,
+        add_special_tokens=False,
+        return_tensors="pt",
+    ).to("cuda")
+
+    text_streamer = TextStreamer(tokenizer, skip_prompt=True)
+    outputs = model.generate(
+        **inputs,
+        streamer=text_streamer,
+        max_new_tokens=128,
+        use_cache=True,
+        temperature=1.5,
+        min_p=0.1,
+    )
+
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+
+def compare_responses(question, response1, response2):
+    try:
+        embeddings = snt_model.encode([response1, response2])
+
+        cos_sim = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
+        P, R, F1 = bert_scorer([response1], [response2], lang="en")
+
+        return {
+            "cosine_similarity": float(cos_sim),
+            "bert_score": {
+                "precision": float(P.mean().item()),
+                "recall": float(R.mean().item()),
+                "f1": float(F1.mean().item())
+            },
+            "question": question,
+            "responses": {
+                "response1": response1,
+                "response2": response2
+            }
+        }
+    except Exception as e:
+        print(f"[ERROR] Failed to compare responses: {e}")
+        return {
+            "error": str(e)
+        }
