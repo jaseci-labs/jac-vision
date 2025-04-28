@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Select from 'react-select';
 import { Box, Button, TextField, Typography, CircularProgress, Accordion, AccordionSummary, AccordionDetails, Table, TableHead, TableRow, TableBody, TableCell } from '@mui/material';
 import LinearProgress, { LinearProgressProps } from '@mui/material/LinearProgress';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { finetuneModel, fetchModels, getTaskStatus, fetchDatasets } from '../utils/api';
+import { finetuneModel, fetchModels, getTaskStatus, fetchDatasets, API_URL } from '../utils/api';
 import { toast } from 'react-toastify';
 import { useFineTuneStore } from '../utils/FineTuneStore';
 
@@ -57,6 +57,14 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setLearningRate,
   } = useFineTuneStore();
 
+  const accordionDetailsRef = useRef(null);
+
+  useEffect(() => {
+    if (accordionDetailsRef.current) {
+      accordionDetailsRef.current.scrollTop = accordionDetailsRef.current.scrollHeight;
+    }
+  }, [logs]);
+
   const loadModels = async () => {
     try {
       const response = await fetchModels();
@@ -100,32 +108,38 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
   useEffect(() => {
     if (!taskId) return;
 
-    const intervalId = setInterval(async () => {
-      const taskStatus = await getTaskStatus(taskId);
+    const eventSource = new EventSource(`${API_URL}/api/finetune/stream-status/${taskId}`);
+
+    eventSource.onmessage = (event) => {
+      const taskStatus = JSON.parse(event.data);
+      console.log("Received update:", taskStatus);
+
       if (taskStatus) {
-        setViewProgress(taskStatus.progress);
-        if (taskStatus.progress == 0) {
+        setViewProgress(taskStatus.data.progress);
+
+        if (taskStatus.progress === 0) {
           setFineTuneLoading(true);
         } else {
-          if (taskStatus.status === 'COMPLETED') {
+          if (taskStatus.data.status === 'COMPLETED') {
             setFineTuneLoading(false);
             setFineTuneStatus('Fine-tuning completed successfully!');
             toast.success('Fine-tuning completed successfully!');
-            setFineTuneLoading(false);
-            clearInterval(intervalId);
-          } else if (taskStatus.status === 'FAILED') {
+            eventSource.close();
+          } else if (taskStatus.data.status === 'FAILED') {
             setFineTuneStatus('Fine-tuning failed.');
             toast.error('Fine-tuning failed.');
             setFineTuneLoading(false);
-            clearInterval(intervalId);
+            eventSource.close();
           }
+
+          const currentLogs = useFineTuneStore.getState().logs;
           setLogs([
-            ...logs,
+            ...currentLogs,
             {
-              status: taskStatus.status,
-              progress: `${taskStatus.progress}%`,
-              epoch: taskStatus.epoch || 'N/A',
-              loss: taskStatus.loss || 'N/A',
+              status: taskStatus.data.status,
+              progress: `${taskStatus.data.progress}%`,
+              epoch: taskStatus.data.epoch || 'N/A',
+              loss: taskStatus.data.loss || 'N/A',
             },
           ]);
         }
@@ -135,9 +149,22 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           { status: 'Error', progress: 'N/A', epoch: 'N/A', loss: 'N/A' },
         ]);
       }
-    }, 3000);
-    return () => clearInterval(intervalId);
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("SSE error:", error);
+      eventSource.close();
+      setLogs([
+        ...logs,
+        { status: 'Error', progress: 'N/A', epoch: 'N/A', loss: 'N/A' },
+      ]);
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [taskId]);
+
 
   const handleFinetune = async () => {
     if (!selectedModel || !datasetLink) {
@@ -151,6 +178,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       setLogs([]);
       console.log(selectedModel, datasetLink, "Test");
       const response = await finetuneModel(selectedModel, datasetLink, "Test");
+      setViewProgress(0);
       console.log(response.status);
       setFineTuneStatus(response.status);
       setTaskId(response["task_id"]);
@@ -418,7 +446,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       </Box>
 
       {/* Console/Log Section */}
-      <Accordion sx={{ backgroundColor: '#2D3748', color: '#E2E8F0', mt: 3, borderRadius: 2, boxShadow: 1 }}>
+      <Accordion sx={{ backgroundColor: '#2D3748', color: '#E2E8F0', mt: 3, borderRadius: 2, boxShadow: 1 }} defaultExpanded>
         <AccordionSummary
           expandIcon={<ExpandMoreIcon sx={{ color: '#9CA3AF' }} />}
           sx={{
@@ -435,7 +463,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
             Console Logs
           </Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ padding: 2, backgroundColor: '#1A202C', maxHeight: 250, overflowY: 'auto', borderRadius: '0 0 8px 8px' }}>
+        <AccordionDetails sx={{ padding: 2, backgroundColor: '#1A202C', maxHeight: 250, overflowY: 'auto', borderRadius: '0 0 8px 8px' }} ref={accordionDetailsRef}>
           <Table sx={{ width: '100%', tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
