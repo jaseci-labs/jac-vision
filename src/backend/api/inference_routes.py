@@ -58,19 +58,18 @@ async def process_unfinetuned_vqa_endpoint(
     ]:
         raise HTTPException(status_code=400, detail="Invalid model name")
 
-    image_content = None
-    if image:
-        if not image.content_type.startswith("image/"):
-            raise HTTPException(status_code=400, detail="Uploaded file must be an image")
-        image_content = await image.read()
+    image_content = await image.read() if image else None
+    image_obj = (
+        Image.open(BytesIO(image_content)).convert("RGB") if image_content else None
+    )
 
     try:
         result = process_unfinetuned_vqa(
-            image_content=image_content,
+            image_content=image_obj,
             question=question,
             model_name=model,
         )
-        return result
+        return {"answer": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

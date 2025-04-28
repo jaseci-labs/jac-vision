@@ -71,20 +71,30 @@ def process_vqa(app_name, image, question):
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-def process_unfinetuned_vqa(image_content, question, model_name):
-    from unsloth import FastVisionModel
-    from transformers import AutoTokenizer
+def process_unfinetuned_vqa(image, question, model_name):
 
     model, tokenizer = FastVisionModel.from_pretrained(
         model_name=model_name,
         load_in_4bit=True,
+        use_gradient_checkpointing = "unsloth",
+    )
+
+    model = FastVisionModel.get_peft_model(
+        model,
+        finetune_vision_layers     = False, # False if not finetuning vision layers
+        finetune_language_layers   = False, # False if not finetuning language layers
+        finetune_attention_modules = False, # False if not finetuning attention layers
+        finetune_mlp_modules       = False, # False if not finetuning MLP layers
+
+        r = 8,           # The larger, the higher the accuracy, but might overfit
+        lora_alpha = 8,  # Recommended alpha == r at least
+        lora_dropout = 0,
+        bias = "none",
+        random_state = 3407,
+        use_rslora = False,
+        loftq_config = None,
     )
     FastVisionModel.for_inference(model)
-
-    if image_content:
-        image = Image.open(BytesIO(image_content)).convert("RGB")
-    else:
-        raise ValueError("Image content is missing")
 
     messages = [
         {
@@ -99,7 +109,6 @@ def process_unfinetuned_vqa(image_content, question, model_name):
         input_text,
         add_special_tokens=False,
         return_tensors="pt",
-        size={"shortest_edge": 512, "longest_edge": 1024}
     ).to("cuda")
 
     text_streamer = TextStreamer(tokenizer, skip_prompt=True)
@@ -109,7 +118,7 @@ def process_unfinetuned_vqa(image_content, question, model_name):
         max_new_tokens=128,
         use_cache=True,
         temperature=1.5,
-        min_p=0.1,
+        min_p=0.1
     )
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
