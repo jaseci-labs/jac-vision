@@ -1,16 +1,19 @@
+from unsloth import FastVisionModel
 import base64
 import sqlite3
 from datetime import datetime
 from io import BytesIO
 
 import google.generativeai as genai
+import numpy as np
 import openai
 import requests
+import torch
+from bert_score import score as bert_scorer
 from PIL import Image
 from sentence_transformers import SentenceTransformer
-from bert_score import score as bert_scorer
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+
 
 snt_model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -126,11 +129,6 @@ def clear_history():
 
 
 def process_unfinetuned_vqa(image_content=None, question=None, model_name=None):
-    from unsloth import FastVisionModel
-    from PIL import Image
-    from io import BytesIO
-    import torch
-
     # Validate model name
     AVAILABLE_MODELS = [
         "unsloth/Llama-3.2-11B-Vision-bnb-4bit",

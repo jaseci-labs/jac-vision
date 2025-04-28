@@ -1,9 +1,9 @@
+from unsloth import FastVisionModel
 import os
 from io import BytesIO
 
 from peft import PeftConfig, PeftModel
 from transformers import AutoTokenizer, TextStreamer
-from unsloth import FastVisionModel
 
 loaded_models = {}
 
