@@ -3,7 +3,7 @@ from io import BytesIO
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from PIL import Image
-from services.inference_service import list_models, load_model, process_vqa
+from services.inference_service import compare_responses, list_models, load_model, process_unfinetuned_vqa, process_vqa
 
 router = APIRouter()
 
