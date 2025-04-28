@@ -127,8 +127,14 @@ def clear_history():
     return {"message": "Cleared all history"}
 
 
-
 def process_unfinetuned_vqa(image_content=None, question=None, model_name=None):
+    from unsloth import FastVisionModel
+    from PIL import Image
+    from io import BytesIO
+    import torch
+    import base64
+    from transformers import AutoImageProcessor  # Add this import
+
     # Validate model name
     AVAILABLE_MODELS = [
         "unsloth/Llama-3.2-11B-Vision-bnb-4bit",
@@ -148,13 +154,28 @@ def process_unfinetuned_vqa(image_content=None, question=None, model_name=None):
 
     # Process image
     image_base64 = None
+    image_tensor = None
     if image_content:
         try:
             # Convert to PIL image
             image = Image.open(BytesIO(image_content)).convert("RGB")
 
-            # Preprocess image
-            image_tensor = model.preprocess_image(image).to(model.device)
+            # Model-specific image preprocessing
+            if "Qwen2-VL" in model_name:
+                # Qwen-VL specific processing
+                image_processor = AutoImageProcessor.from_pretrained(
+                    "Qwen/Qwen-VL-Chat", trust_remote_code=True
+                )
+                image_tensor = image_processor(image, return_tensors="pt")["pixel_values"]
+            elif "Llama-3" in model_name:
+                # Llama-specific processing
+                image_tensor = model.preprocess_image(image)
+            elif "Pixtral" in model_name:
+                # Pixtral processing (similar to Llama)
+                image_tensor = model.preprocess_image(image)
+
+            # Move tensor to GPU and add batch dimension
+            image_tensor = image_tensor.to(model.device).half()
 
             # Convert to base64 for storage
             buffered = BytesIO()
@@ -180,14 +201,20 @@ def process_unfinetuned_vqa(image_content=None, question=None, model_name=None):
         ).to(model.device)
 
         with torch.no_grad():
-            outputs = model.generate(
-                **inputs,
-                do_sample=True,
-                temperature=0.7,
-                top_p=0.9,
-                max_new_tokens=256,
-                images=image_tensor.unsqueeze(0) if image_content else None
-            )
+            generation_config = {
+                "do_sample": True,
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "max_new_tokens": 256,
+            }
+
+            if image_tensor is not None:
+                if "Qwen2-VL" in model_name:
+                    generation_config["query_embeds"] = model.get_query_embeds(inputs, image_tensor)
+                else:
+                    generation_config["images"] = image_tensor
+
+            outputs = model.generate(**inputs, **generation_config)
 
         answer = tokenizer.decode(outputs[0], skip_special_tokens=True)
         answer = answer.split("<start_of_turn>assistant")[-1].strip()
