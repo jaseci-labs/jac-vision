@@ -4,8 +4,8 @@ import { Box, Button, TextField, Typography, CircularProgress, Accordion, Accord
 import LinearProgress, { LinearProgressProps } from '@mui/material/LinearProgress';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { finetuneModel, fetchModels, getTaskStatus, fetchDatasets } from '../utils/api';
-import { ModelOption } from '../types';
 import { toast } from 'react-toastify';
+import { useFineTuneStore } from '../utils/FineTuneStore';
 
 interface FineTuneProps {
   selectedModel: string | null;
@@ -30,24 +30,32 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
 }
 
 const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, toast }) => {
-  const [datasetLink, setDatasetLink] = useState<string>('');
-  const [fineTuneStatus, setFineTuneStatus] = useState<string>('');
-  const [fineTuneLoading, setFineTuneLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
-  const [datasetOptions, setDatasetOptions] = useState<ModelOption[]>([]);
-
-  const [taskId, setTaskId] = useState<string>('');
-  const [viewprogress, setViewProgress] = useState<number>(0);
-  const [logs, setLogs] = useState<{ status: string; progress: string; epoch: string | null; loss: string | null }[]>([]);
-
-  const [datasetSize, setDatasetSize] = useState<string>('');
-  const [epochs, setEpochs] = useState<string>('');
-  const [steps, setSteps] = useState<string>('');
-  const [learningRate, setLearningRate] = useState<string>('');
-  const [batchSize, setBatchSize] = useState<string>('');
-  const [sequenceLength, setSequenceLength] = useState<string>('');
-  const [precision, setPrecision] = useState<string>('');
+  const {
+    datasetLink,
+    fineTuneStatus,
+    fineTuneLoading,
+    error,
+    modelOptions,
+    datasetOptions,
+    taskId,
+    viewProgress,
+    logs,
+    datasetSize,
+    epochs,
+    learningRate,
+    setDatasetLink,
+    setFineTuneStatus,
+    setFineTuneLoading,
+    setError,
+    setModelOptions,
+    setDatasetOptions,
+    setTaskId,
+    setViewProgress,
+    setLogs,
+    setDatasetSize,
+    setEpochs,
+    setLearningRate,
+  } = useFineTuneStore();
 
   const loadModels = async () => {
     try {
@@ -111,8 +119,8 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
             setFineTuneLoading(false);
             clearInterval(intervalId);
           }
-          setLogs(prevLogs => [
-            ...prevLogs,
+          setLogs([
+            ...logs,
             {
               status: taskStatus.status,
               progress: `${taskStatus.progress}%`,
@@ -122,8 +130,8 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           ]);
         }
       } else {
-        setLogs(prevLogs => [
-          ...prevLogs,
+        setLogs([
+          ...logs,
           { status: 'Error', progress: 'N/A', epoch: 'N/A', loss: 'N/A' },
         ]);
       }
@@ -141,7 +149,9 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setError('');
     try {
       setLogs([]);
+      console.log(selectedModel, datasetLink, "Test");
       const response = await finetuneModel(selectedModel, datasetLink, "Test");
+      console.log(response.status);
       setFineTuneStatus(response.status);
       setTaskId(response["task_id"]);
       localStorage.setItem('taskId', response["task_id"]);
@@ -171,7 +181,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         variant="h5"
         sx={{
           fontWeight: 700,
-          mb: 3,
+          mb: 2,
           textAlign: 'center',
           color: '#E2E8F0'
         }}
@@ -179,18 +189,18 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         Fine-Tune Your Model
       </Typography>
 
-      {/* <Typography
-        variant="body1"
+      <Typography
+        variant="body2"
         sx={{
-          mb: 4,
+          mb: 3,
           textAlign: 'center',
           color: '#9CA3AF',
           maxWidth: '800px',
           mx: 'auto'
         }}
       >
-        Configure your model with the following parameters and start the fine-tuning process. Each setting helps improve the model's performance based on your dataset and goals.
-      </Typography> */}
+        Select the Model and Dataset you want to use for fine-tuning. Adjust the parameters as needed, and click "Start Fine-Tuning" to begin the process. You can monitor the progress in the console logs below.
+      </Typography>
 
       <Box
         sx={{
@@ -203,20 +213,52 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         }}
       >
         <Box sx={{ flex: 1 }}>
-          <TextField
-            label="Select Model"
-            value={selectedModel}
-            variant="outlined"
-            fullWidth
-            sx={{
-              '& .MuiOutlinedInput-root': {
+          <Select
+            placeholder="Select Model"
+            options={modelOptions}
+            onChange={(option) => setSelectedModel(option?.value || '')}
+            value={modelOptions.find((option) => option.value === selectedModel) || null}
+            styles={{
+              container: (base) => ({
+                ...base,
+                width: '100%',
+              }),
+              control: (base, state) => ({
+                ...base,
                 height: '56px',
-                '& fieldset': { borderColor: '#4B5563' },
-                '&:hover fieldset': { borderColor: '#5B21B6' },
-                '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
-              },
-              '& .MuiInputLabel-root': { color: '#9CA3AF' },
-              '& .MuiInputBase-input': { color: '#E2E8F0' },
+                borderColor: state.isFocused ? '#5B21B6' : '#4B5563',
+                boxShadow: 'none',
+                backgroundColor: 'transparent',
+                color: '#E2E8F0',
+                '&:hover': { borderColor: '#5B21B6' },
+              }),
+              menu: (base) => ({
+                ...base,
+                backgroundColor: '#1F2937',
+                color: '#E2E8F0',
+                zIndex: 9999,
+              }),
+              option: (base, state) => ({
+                ...base,
+                backgroundColor: state.isSelected
+                  ? '#5B21B6'
+                  : state.isFocused
+                    ? '#374151'
+                    : 'transparent',
+                color: '#E2E8F0',
+                cursor: 'pointer',
+                '&:active': {
+                  backgroundColor: '#4C1D95',
+                },
+              }),
+              singleValue: (base) => ({
+                ...base,
+                color: '#E2E8F0',
+              }),
+              placeholder: (base) => ({
+                ...base,
+                color: '#9CA3AF',
+              }),
             }}
           />
         </Box>
@@ -346,6 +388,11 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       {fineTuneStatus && !error && (
         <Typography variant="body1" sx={{ mt: 2, color: '#E2E8F0', textAlign: 'center' }}>
           {fineTuneStatus}
+          {fineTuneStatus === 'STARTED' && (
+            <Typography variant="body2" sx={{ color: '#9CA3AF', mt: 1 }}>
+              This process may take a few minutes to start. Please be patient.
+            </Typography>
+          )}
         </Typography>
       )}
 
@@ -357,7 +404,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           </Typography>
           <LinearProgressWithLabel
             variant="determinate"
-            value={viewprogress}
+            value={viewProgress}
             sx={{
               height: '8px',
               borderRadius: '4px',

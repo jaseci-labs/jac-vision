@@ -37,7 +37,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { API_URL } from "../utils/api";
-import { useImageCaptioningAppState } from "../utils/imageCaptioningStore";
+import { useImageCaptioningAppState } from "../utils/ImageCaptioningStore";
 
 interface ImageCaptioningProps {
   toast: typeof toast;
