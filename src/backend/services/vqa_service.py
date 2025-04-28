@@ -13,7 +13,14 @@ from bert_score import score as bert_scorer
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+from transformers import Blip2Processor  # Qwen-specific processor
+from transformers import AutoTokenizer
 
+AVAILABLE_MODELS = [
+        "unsloth/Llama-3.2-11B-Vision-bnb-4bit",
+        "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit",
+        "unsloth/Pixtral-12B-2409",
+    ]
 
 snt_model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -128,19 +135,6 @@ def clear_history():
 
 
 def process_unfinetuned_vqa(image_content=None, question=None, model_name=None):
-    from unsloth import FastVisionModel
-    from PIL import Image
-    from io import BytesIO
-    import torch
-    import base64
-    from transformers import AutoImageProcessor  # Add this import
-
-    # Validate model name
-    AVAILABLE_MODELS = [
-        "unsloth/Llama-3.2-11B-Vision-bnb-4bit",
-        "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit",
-        "unsloth/Pixtral-12B-2409",
-    ]
 
     if model_name not in AVAILABLE_MODELS:
         raise ValueError(f"Invalid model name: {model_name}")
@@ -150,6 +144,7 @@ def process_unfinetuned_vqa(image_content=None, question=None, model_name=None):
         model_name,
         load_in_4bit=True,
         use_gradient_checkpointing=False,
+        trust_remote_code=True  # Critical for Qwen models
     )
 
     # Process image
@@ -160,21 +155,19 @@ def process_unfinetuned_vqa(image_content=None, question=None, model_name=None):
             # Convert to PIL image
             image = Image.open(BytesIO(image_content)).convert("RGB")
 
-            # Model-specific image preprocessing
+            # Qwen-VL specific processing
             if "Qwen2-VL" in model_name:
-                # Qwen-VL specific processing
-                image_processor = AutoImageProcessor.from_pretrained(
-                    "Qwen/Qwen-VL-Chat", trust_remote_code=True
+
+                processor = Blip2Processor.from_pretrained(
+                    "Qwen/Qwen-VL-Chat",
+                    trust_remote_code=True
                 )
-                image_tensor = image_processor(image, return_tensors="pt")["pixel_values"]
-            elif "Llama-3" in model_name:
-                # Llama-specific processing
-                image_tensor = model.preprocess_image(image)
-            elif "Pixtral" in model_name:
-                # Pixtral processing (similar to Llama)
+                image_tensor = processor(image, return_tensors="pt")["pixel_values"]
+            else:
+                # Processing for other models
                 image_tensor = model.preprocess_image(image)
 
-            # Move tensor to GPU and add batch dimension
+            # Move tensor to GPU
             image_tensor = image_tensor.to(model.device).half()
 
             # Convert to base64 for storage
@@ -183,6 +176,8 @@ def process_unfinetuned_vqa(image_content=None, question=None, model_name=None):
             image_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
         except Exception as e:
             raise ValueError(f"Image processing failed: {str(e)}")
+
+    # Rest of the function remains the same...
 
     # Format input with template
     prompt = f"""<start_of_turn>user

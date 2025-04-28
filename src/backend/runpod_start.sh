@@ -34,3 +34,17 @@ git pull
 pip install -r requirements_with_versions.txt
 
 echo "✅ Environment setup complete."
+
+# Ask if user wants to start the backend
+read -p "🚀 Do you want to start the backend server now? (Y/N): " run_backend
+
+# Convert to uppercase just in case
+run_backend=${run_backend^^}
+
+if [ "$run_backend" = "Y" ]; then
+    echo "🎯 Starting backend server..."
+    cd jac-vision/src/backend/
+    uvicorn main:app --host 0.0.0.0 --port 4000
+else
+    echo "❌ Backend server not started. Setup finished."
+fi
