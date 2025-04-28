@@ -194,14 +194,19 @@ def get_training_metrics(task_id: str):
 
 @router.get("/adaptive-config/{model_name}")
 async def get_adaptive_config(model_name: str):
-    config = adaptive_configs.get(model_name)
-    if not config:
+
+    decoded_model_name = model_name.replace("%2F", "/")  # Decode URL-encoded slashes
+    print(f"Fetching adaptive config for model: {decoded_model_name}")
+    if decoded_model_name not in adaptive_configs:
         raise HTTPException(
             status_code=404,
             detail="Model not found in adaptive configurations"
         )
+
+    config = adaptive_configs.get(decoded_model_name)
+
     return {
-        "model": model_name,
+        "model": decoded_model_name,
         "batch_size": config["batch_size"],
         "learning_rate": config["learning_rate"],
         "epochs": config["epochs"]
