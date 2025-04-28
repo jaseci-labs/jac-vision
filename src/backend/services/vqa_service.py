@@ -7,7 +7,6 @@ from io import BytesIO
 import google.generativeai as genai
 import numpy as np
 import openai
-from bert_score import score as bert_scorer
 from PIL import Image
 
 

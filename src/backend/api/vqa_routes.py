@@ -1,6 +1,4 @@
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from services.vqa_service import compare_responses  # New import
-from services.vqa_service import process_unfinetuned_vqa  # New import
 from services.vqa_service import (clear_history, delete_history_entry,
                                   get_history, process_vqa)
 
