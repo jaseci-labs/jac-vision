@@ -79,21 +79,8 @@ def process_unfinetuned_vqa(image, question, model_name):
         use_gradient_checkpointing = "unsloth",
     )
 
-    model = FastVisionModel.get_peft_model(
-        model,
-        finetune_vision_layers     = False, # False if not finetuning vision layers
-        finetune_language_layers   = False, # False if not finetuning language layers
-        finetune_attention_modules = False, # False if not finetuning attention layers
-        finetune_mlp_modules       = False, # False if not finetuning MLP layers
+    print(f"Loaded model: {model_name}")
 
-        r = 8,           # The larger, the higher the accuracy, but might overfit
-        lora_alpha = 8,  # Recommended alpha == r at least
-        lora_dropout = 0,
-        bias = "none",
-        random_state = 3407,
-        use_rslora = False,
-        loftq_config = None,
-    )
     FastVisionModel.for_inference(model)
 
     messages = [
@@ -104,6 +91,9 @@ def process_unfinetuned_vqa(image, question, model_name):
     ]
 
     input_text = tokenizer.apply_chat_template(messages, add_generation_prompt=True)
+
+    print(f"Input text: {input_text}")
+
     inputs = tokenizer(
         image,
         input_text,
@@ -120,6 +110,8 @@ def process_unfinetuned_vqa(image, question, model_name):
         temperature=1.5,
         min_p=0.1
     )
+
+    print(f"Generated output: {outputs}")
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 

@@ -63,9 +63,12 @@ async def process_unfinetuned_vqa_endpoint(
         Image.open(BytesIO(image_content)).convert("RGB") if image_content else None
     )
 
+    print(f"Processing image: {image_obj}")
+    print(f"Processing image size: {image_obj.size if image_obj else 'No image'}")
+
     try:
         result = process_unfinetuned_vqa(
-            image_content=image_obj,
+            image=image_obj,
             question=question,
             model_name=model,
         )
