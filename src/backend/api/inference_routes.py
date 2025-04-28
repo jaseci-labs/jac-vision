@@ -53,7 +53,7 @@ async def process_unfinetuned_vqa_endpoint(
         raise HTTPException(status_code=400, detail="Missing question")
     if model not in [
         "unsloth/Llama-3.2-11B-Vision-bnb-4bit",
-        "unsloth/Qwen2-VL-7B-Instruct-bnb-4bit",
+        "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit",
         "unsloth/Pixtral-12B-2409",
     ]:
         raise HTTPException(status_code=400, detail="Invalid model name")

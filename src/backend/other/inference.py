@@ -15,7 +15,7 @@ max_tokens = 300
 # ----------------------
 
 model, tokenizer = FastVisionModel.from_pretrained(
-    "unsloth/Qwen2-VL-7B-Instruct-bnb-4bit",
+    "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit",
     load_in_4bit=True,
     use_gradient_checkpointing="unsloth",
 )

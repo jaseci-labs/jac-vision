@@ -25,7 +25,7 @@ os.environ["UNSLOTH_RETURN_LOGITS"] = "1"
 
 AVAILABLE_MODELS = [
     "unsloth/Llama-3.2-11B-Vision-bnb-4bit",
-    "unsloth/Qwen2-VL-7B-Instruct-bnb-4bit",
+    "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit",
     "unsloth/Pixtral-12B-2409",
 ]
 
