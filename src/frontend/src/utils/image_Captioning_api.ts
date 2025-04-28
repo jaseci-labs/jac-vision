@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = "https://k5rfwii4vd930n-4000.proxy.runpod.net";
+export const API_URL = "https://f3ccc30wbjkcyp-5000.proxy.runpod.net";
 
 interface UploadImageFolderResponse {
     message: string;
