@@ -9,7 +9,7 @@ import pandas as pd
 from datasets import load_dataset
 from fastapi import HTTPException
 from PIL import Image
-from training_metrics import (
+from services.training_metrics import (
     ProgressCallback,
     compute_metrics,
     print_training_summary,
