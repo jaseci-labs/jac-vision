@@ -1,6 +1,6 @@
-import axios from "axios";
+import axios from 'axios';
 
-export const API_URL = "https://f0of60b35mz9d6-4000.proxy.runpod.net";
+export const API_URL = "https://20kbur51erc41s-5000.proxy.runpod.net";
 
 // Define TypeScript interfaces for API responses
 export interface Model {
@@ -81,36 +81,8 @@ interface DeleteVqaHistoryResponse {
 interface ClearVqaHistoryResponse {
   message: string;
 }
-
-interface UploadImageFolderResponse {
-  message: string;
-  folder_name: string;
-}
-
-interface GetNextImageResponse {
-  done?: boolean;
-  message?: string;
-  image_path?: string;
-  caption?: string;
-  total?: number;
-}
-
-interface SaveCaptionRequest {
-  caption: string;
-  image_path: string;
-  dataset_path: string;
-}
-
-interface SaveCaptionResponse {
-  message: string;
-}
-
 interface DownloadDatasetResponse {
   message?: string;
-}
-
-interface GetJsonResponse {
-  data: any;
 }
 
 interface ClearDataResponse {
@@ -132,21 +104,21 @@ export const performVqa = async (
   image: File | null,
   question: string,
   apiKey?: string,
-  apiType?: "gemini" | "openai"
+  apiType?: 'gemini' | 'openai'
 ): Promise<VqaResponse> => {
   const formData = new FormData();
-  formData.append("model", model);
-  formData.append("question", question);
+  formData.append('model', model);
+  formData.append('question', question);
   if (image) {
-    formData.append("image", image);
+    formData.append('image', image);
   }
   if (apiKey && apiType) {
-    formData.append("api_key", apiKey);
-    formData.append("api_type", apiType);
+    formData.append('api_key', apiKey);
+    formData.append('api_type', apiType);
   }
   try {
     const response = await axios.post(`${API_URL}/vqa`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
   } catch (error) {
@@ -184,21 +156,15 @@ export const fetchFineTunedModels = async (): Promise<ModelsResponse> => {
 };
 
 // Load a fine-tuned model for inference
-export const loadFineTunedModelForInference = async (
-  task_id: string
-): Promise<ClearDataResponse> => {
+export const loadFineTunedModelForInference = async (selectedModel: string): Promise<ClearDataResponse> => {
   try {
     const formData = new FormData();
-    formData.append("task_id", task_id);
-    const response = await axios.post(
-      `${API_URL}/api/inference/load-model`,
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+    formData.append("app_name", selectedModel);
+    const response = await axios.post(`${API_URL}/api/inference/load-model`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -207,24 +173,20 @@ export const loadFineTunedModelForInference = async (
 
 // Inference with a fine-tuned model
 export const inferenceWithFineTunedModel = async (
-  task_id: string,
+  app_name: string,
   image: File | null,
-  question: string
+  question: string,
 ): Promise<VqaResponse> => {
   const formData = new FormData();
-  formData.append("task_id", task_id);
-  formData.append("question", question);
+  formData.append('app_name', app_name);
+  formData.append('question', question);
   if (image) {
-    formData.append("image", image);
+    formData.append('image', image);
   }
   try {
-    const response = await axios.post(
-      `${API_URL}/api/inference/process`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
+    const response = await axios.post(`${API_URL}/api/inference/process`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -232,13 +194,9 @@ export const inferenceWithFineTunedModel = async (
 };
 
 // Delete a model
-export const deleteModel = async (
-  model: string
-): Promise<DeleteModelResponse> => {
+export const deleteModel = async (model: string): Promise<DeleteModelResponse> => {
   try {
-    const response = await axios.post(`${API_URL}/api/models/delete-model`, {
-      model,
-    });
+    const response = await axios.post(`${API_URL}/api/models/delete-model`, { model });
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -248,7 +206,7 @@ export const deleteModel = async (
 // Fetch VQA history
 export const fetchVqaHistory = async (): Promise<VqaHistoryResponse> => {
   try {
-    const response = await axios.get(`${API_URL}/api/vqa/history`);
+    const response = await axios.get(`${API_URL}/api/vqa/vqa/history`);
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -256,13 +214,9 @@ export const fetchVqaHistory = async (): Promise<VqaHistoryResponse> => {
 };
 
 // Delete a specific VQA history entry
-export const deleteVqaHistory = async (
-  historyId: number
-): Promise<DeleteVqaHistoryResponse> => {
+export const deleteVqaHistory = async (historyId: number): Promise<DeleteVqaHistoryResponse> => {
   try {
-    const response = await axios.delete(
-      `${API_URL}/api/vqa/history/delete/${historyId}`
-    );
+    const response = await axios.delete(`${API_URL}/api/vqa/vqa/history/delete/${historyId}`);
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -272,7 +226,7 @@ export const deleteVqaHistory = async (
 // Clear all VQA history
 export const clearVqaHistory = async (): Promise<ClearVqaHistoryResponse> => {
   try {
-    const response = await axios.delete(`${API_URL}/api/vqa/history/clear`);
+    const response = await axios.delete(`${API_URL}/api/vqa/vqa/history/clear`);
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -280,22 +234,15 @@ export const clearVqaHistory = async (): Promise<ClearVqaHistoryResponse> => {
 };
 
 // Test API key for Gemini or OpenAI
-export const testApiKey = async (
-  apiKey: string,
-  apiType: "gemini" | "openai"
-): Promise<VqaResponse> => {
+export const testApiKey = async (apiKey: string, apiType: 'gemini' | 'openai'): Promise<VqaResponse> => {
   const formData = new FormData();
-  formData.append("api_key", apiKey);
-  formData.append("api_type", apiType);
-  formData.append("question", "Test question");
+  formData.append('api_key', apiKey);
+  formData.append('api_type', apiType);
+  formData.append('question', 'Test question');
   try {
-    const response = await axios.post(
-      `${API_URL}/api/vqa/process_vqa`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
+    const response = await axios.post(`${API_URL}/api/vqa/vqa`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -303,12 +250,9 @@ export const testApiKey = async (
 };
 
 // Download a model from Hugging Face
-export const downloadModel = async (
-  model: string,
-  token?: string
-): Promise<DownloadModelResponse> => {
+export const downloadModel = async (model: string, token?: string): Promise<DownloadModelResponse> => {
   try {
-    console.log("Sending download request:", { model, token });
+    console.log('Sending download request:', { model, token });
     const response = await axios.post(
       `${API_URL}/api/models/download-model`,
       { model, token },
@@ -321,10 +265,7 @@ export const downloadModel = async (
 };
 
 // Check if a model is restricted and if the user has access
-export const checkModelAccess = async (
-  model: string,
-  token?: string
-): Promise<CheckModelAccessResponse> => {
+export const checkModelAccess = async (model: string, token?: string): Promise<CheckModelAccessResponse> => {
   try {
     const response = await axios.post(
       `${API_URL}/api/models/check-model-access`,
@@ -338,11 +279,7 @@ export const checkModelAccess = async (
 };
 
 // Search for models on Hugging Face with pagination
-export const searchModels = async (
-  query: string,
-  limit: number = 50,
-  offset: number = 0
-): Promise<SearchModelsResponse> => {
+export const searchModels = async (query: string, limit: number = 50, offset: number = 0): Promise<SearchModelsResponse> => {
   try {
     const response = await axios.get(`${API_URL}/api/models/search`, {
       params: { query, limit, offset },
@@ -364,130 +301,22 @@ export const fetchSystemInfo = async (): Promise<SystemInfoResponse> => {
 };
 
 // Fine-tune a model
-export const finetuneModel = async (
-  model_name: string,
-  dataset_path: string,
-  app_name: string
-): Promise<FineTuneResponse> => {
+export const finetuneModel = async (model_name: string, dataset_path: string, app_name: string): Promise<FineTuneResponse> => {
   try {
-    const response = await axios.post(
-      `${API_URL}/api/finetune/start-finetuning`,
-      { model_name, dataset_path, app_name }
-    );
+    const response = await axios.post(`${API_URL}/api/finetune/start-finetuning`, { model_name, dataset_path, app_name });
     return response.data;
   } catch (error) {
     return handleApiError(error);
   }
 };
 
-// Upload image folder for captioning
-export const uploadImageFolder = async (
-  formData: FormData
-): Promise<UploadImageFolderResponse> => {
-  try {
-    const response = await axios.post(
-      `${API_URL}/api/datasets/upload-image-folder`,
-      formData,
-      {
-        timeout: 60000, // 60 seconds
-      }
-    );
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
 
-// Get the next image for captioning
-export const getNextImage = async (
-  dataset_path: string,
-  apiKey: string,
-  apiType: string,
-  model: string = "google/gemma-3-12b-it:free"
-): Promise<GetNextImageResponse> => {
-  try {
-    const response = await axios.get(`${API_URL}/api/datasets/get-next-image`, {
-      params: {
-        dataset_path: dataset_path,
-        api_key: apiKey,
-        api_type: apiType,
-        model: model,
-      },
-    });
-    console.log("Response from getNextImage:", response.data);
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Save the edited caption
-export const saveCaption = async (
-  request: SaveCaptionRequest
-): Promise<SaveCaptionResponse> => {
-  try {
-    const response = await axios.post(
-      `${API_URL}/api/datasets/save-caption`,
-      request
-    );
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Download the JSON file
-export const downloadJson = async (): Promise<Blob> => {
-  try {
-    const response = await axios.get(`${API_URL}/api/datasets/download-json`, {
-      responseType: "blob",
-    });
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Download the dataset as a ZIP file
-export const downloadDataset = async (): Promise<Blob> => {
-  try {
-    const response = await axios.get(
-      `${API_URL}/api/datasets/download-dataset`,
-      {
-        responseType: "blob",
-      }
-    );
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Get the JSON data for preview
-export const getJson = async (): Promise<GetJsonResponse> => {
-  try {
-    const response = await axios.get(`${API_URL}/api/datasets/get-json`);
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-// Clear all data
-export const clearData = async (): Promise<ClearDataResponse> => {
-  try {
-    const response = await axios.delete(`${API_URL}/api/datasets/clear-data`);
-    return response.data;
-  } catch (error) {
-    return handleApiError(error);
-  }
-};
 
 export const getTaskStatus = async (taskId: string) => {
   try {
     const response = await fetch(`${API_URL}/api/finetune/status/${taskId}`);
     if (!response.ok) {
-      throw new Error("Failed to fetch task status");
+      throw new Error('Failed to fetch task status');
     }
     const data = await response.json();
     return data;
@@ -496,6 +325,8 @@ export const getTaskStatus = async (taskId: string) => {
     return null;
   }
 };
+
+
 
 export const sendChatbotMessage = async (
   message: string,

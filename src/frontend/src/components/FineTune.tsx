@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Select from 'react-select';
 import { Box, Button, TextField, Typography, CircularProgress, Accordion, AccordionSummary, AccordionDetails, Table, TableHead, TableRow, TableBody, TableCell } from '@mui/material';
 import LinearProgress, { LinearProgressProps } from '@mui/material/LinearProgress';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { finetuneModel, fetchModels, getTaskStatus, fetchDatasets } from '../utils/api';
-import { ModelOption } from '../types';
+import { finetuneModel, fetchModels, getTaskStatus, fetchDatasets, API_URL } from '../utils/api';
 import { toast } from 'react-toastify';
+import { useFineTuneStore } from '../utils/FineTuneStore';
+import Graph from './Graphs';
 
 interface FineTuneProps {
   selectedModel: string | null;
@@ -30,24 +31,44 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
 }
 
 const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, toast }) => {
-  const [datasetLink, setDatasetLink] = useState<string>('');
-  const [fineTuneStatus, setFineTuneStatus] = useState<string>('');
-  const [fineTuneLoading, setFineTuneLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
-  const [datasetOptions, setDatasetOptions] = useState<ModelOption[]>([]);
+  const {
+    datasetLink,
+    fineTuneStatus,
+    fineTuneLoading,
+    error,
+    modelOptions,
+    datasetOptions,
+    taskId,
+    viewProgress,
+    logs,
+    epochLogs,
+    datasetSize,
+    epochs,
+    learningRate,
+    modelName,
+    setDatasetLink,
+    setFineTuneStatus,
+    setFineTuneLoading,
+    setError,
+    setModelOptions,
+    setDatasetOptions,
+    setTaskId,
+    setViewProgress,
+    setLogs,
+    setEpochLogs,
+    setDatasetSize,
+    setEpochs,
+    setLearningRate,
+    setModelName,
+  } = useFineTuneStore();
 
-  const [taskId, setTaskId] = useState<string>('');
-  const [viewprogress, setViewProgress] = useState<number>(0);
-  const [logs, setLogs] = useState<{ status: string; progress: string; epoch: string | null; loss: string | null }[]>([]);
+  const accordionDetailsRef = useRef<HTMLDivElement>(null);
 
-  const [datasetSize, setDatasetSize] = useState<string>('');
-  const [epochs, setEpochs] = useState<string>('');
-  const [steps, setSteps] = useState<string>('');
-  const [learningRate, setLearningRate] = useState<string>('');
-  const [batchSize, setBatchSize] = useState<string>('');
-  const [sequenceLength, setSequenceLength] = useState<string>('');
-  const [precision, setPrecision] = useState<string>('');
+  useEffect(() => {
+    if (accordionDetailsRef.current) {
+      accordionDetailsRef.current.scrollTop = accordionDetailsRef.current.scrollHeight;
+    }
+  }, [logs]);
 
   const loadModels = async () => {
     try {
@@ -92,44 +113,71 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
   useEffect(() => {
     if (!taskId) return;
 
-    const intervalId = setInterval(async () => {
-      const taskStatus = await getTaskStatus(taskId);
-      if (taskStatus) {
-        setViewProgress(taskStatus.progress);
-        if (taskStatus.progress == 0) {
-          setFineTuneLoading(true);
-        } else {
-          if (taskStatus.status === 'COMPLETED') {
-            setFineTuneLoading(false);
-            setFineTuneStatus('Fine-tuning completed successfully!');
-            toast.success('Fine-tuning completed successfully!');
-            setFineTuneLoading(false);
-            clearInterval(intervalId);
-          } else if (taskStatus.status === 'FAILED') {
-            setFineTuneStatus('Fine-tuning failed.');
-            toast.error('Fine-tuning failed.');
-            setFineTuneLoading(false);
-            clearInterval(intervalId);
+    const eventSource = new EventSource(`${API_URL}/api/finetune/stream-status/${taskId}`);
+
+    eventSource.onmessage = (event) => {
+      const taskData = JSON.parse(event.data);
+      if (taskData.type === "status_update") {
+        const taskStatus = taskData;
+
+        if (taskStatus) {
+          setViewProgress(taskStatus.data.progress);
+
+          if (taskStatus.data.progress === 0) {
+            setFineTuneLoading(true);
+          } else {
+            if (taskStatus.data.status === 'COMPLETED') {
+              setFineTuneLoading(false);
+              setFineTuneStatus('Fine-tuning completed successfully!');
+              toast.success('Fine-tuning completed successfully!');
+              eventSource.close();
+            } else if (taskStatus.data.status === 'FAILED') {
+              setFineTuneStatus('Fine-tuning failed.');
+              toast.error('Fine-tuning failed.');
+              setFineTuneLoading(false);
+              eventSource.close();
+            }
+
+            const currentLogs = useFineTuneStore.getState().logs;
+            setLogs([
+              ...currentLogs,
+              {
+                status: taskStatus.data.status,
+                progress: `${taskStatus.data.progress}%`,
+                loss: taskStatus.data.loss || 'N/A',
+                epoch: taskStatus.data.epoch || 'N/A',
+              },
+            ]);
           }
-          setLogs(prevLogs => [
-            ...prevLogs,
-            {
-              status: taskStatus.status,
-              progress: `${taskStatus.progress}%`,
-              epoch: taskStatus.epoch || 'N/A',
-              loss: taskStatus.loss || 'N/A',
-            },
-          ]);
         }
-      } else {
-        setLogs(prevLogs => [
-          ...prevLogs,
-          { status: 'Error', progress: 'N/A', epoch: 'N/A', loss: 'N/A' },
+      } else if (taskData.type === "epoch_update") {
+        const epochStatus = taskData.data;
+        const currentEpochLogs = useFineTuneStore.getState().epochLogs || [];
+        setEpochLogs([
+          ...currentEpochLogs,
+          {
+            epoch: epochStatus.epoch,
+            training_loss: epochStatus.training_loss,
+            validation_loss: epochStatus.validation_loss ,
+          },
         ]);
       }
-    }, 3000);
-    return () => clearInterval(intervalId);
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("SSE error:", error);
+      eventSource.close();
+      setLogs([
+        ...logs,
+        { status: 'Error', progress: 'N/A', epoch: 'N/A', loss: 'N/A' },
+      ]);
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [taskId]);
+
 
   const handleFinetune = async () => {
     if (!selectedModel || !datasetLink) {
@@ -141,7 +189,10 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setError('');
     try {
       setLogs([]);
-      const response = await finetuneModel(selectedModel, datasetLink, "Test");
+      const response = await finetuneModel(selectedModel, datasetLink, modelName);
+      setViewProgress(0);
+      setLogs([]);
+      setEpochLogs([]);
       setFineTuneStatus(response.status);
       setTaskId(response["task_id"]);
       localStorage.setItem('taskId', response["task_id"]);
@@ -171,7 +222,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         variant="h5"
         sx={{
           fontWeight: 700,
-          mb: 3,
+          mb: 2,
           textAlign: 'center',
           color: '#E2E8F0'
         }}
@@ -179,18 +230,18 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         Fine-Tune Your Model
       </Typography>
 
-      {/* <Typography
-        variant="body1"
+      <Typography
+        variant="body2"
         sx={{
-          mb: 4,
+          mb: 3,
           textAlign: 'center',
           color: '#9CA3AF',
           maxWidth: '800px',
           mx: 'auto'
         }}
       >
-        Configure your model with the following parameters and start the fine-tuning process. Each setting helps improve the model's performance based on your dataset and goals.
-      </Typography> */}
+        Select the Model and Dataset you want to use for fine-tuning. Adjust the parameters as needed, and click "Start Fine-Tuning" to begin the process. You can monitor the progress in the console logs below.
+      </Typography>
 
       <Box
         sx={{
@@ -198,30 +249,63 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           flexDirection: { xs: 'column', sm: 'row' },
           gap: 3,
           mb: 4,
+          width: '100%',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
       >
-        <Box sx={{ flex: 1 }}>
-          <TextField
-            label="Select Model"
-            value={selectedModel}
-            variant="outlined"
-            fullWidth
-            sx={{
-              '& .MuiOutlinedInput-root': {
+        <Box sx={{ flex: 1, width: '100%' }}>
+          <Select
+            placeholder="Select Model"
+            options={modelOptions}
+            onChange={(option) => setSelectedModel(option?.value || '')}
+            value={modelOptions.find((option) => option.value === selectedModel) || null}
+            styles={{
+              container: (base) => ({
+                ...base,
+                width: '100%',
+              }),
+              control: (base, state) => ({
+                ...base,
                 height: '56px',
-                '& fieldset': { borderColor: '#4B5563' },
-                '&:hover fieldset': { borderColor: '#5B21B6' },
-                '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
-              },
-              '& .MuiInputLabel-root': { color: '#9CA3AF' },
-              '& .MuiInputBase-input': { color: '#E2E8F0' },
+                borderColor: state.isFocused ? '#5B21B6' : '#4B5563',
+                boxShadow: 'none',
+                backgroundColor: 'transparent',
+                color: '#E2E8F0',
+                '&:hover': { borderColor: '#5B21B6' },
+              }),
+              menu: (base) => ({
+                ...base,
+                backgroundColor: '#1F2937',
+                color: '#E2E8F0',
+                zIndex: 9999,
+              }),
+              option: (base, state) => ({
+                ...base,
+                backgroundColor: state.isSelected
+                  ? '#5B21B6'
+                  : state.isFocused
+                    ? '#374151'
+                    : 'transparent',
+                color: '#E2E8F0',
+                cursor: 'pointer',
+                '&:active': {
+                  backgroundColor: '#4C1D95',
+                },
+              }),
+              singleValue: (base) => ({
+                ...base,
+                color: '#E2E8F0',
+              }),
+              placeholder: (base) => ({
+                ...base,
+                color: '#9CA3AF',
+              }),
             }}
           />
         </Box>
 
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, width: '100%' }}>
           <Select
             placeholder="Select the Dataset"
             options={datasetOptions}
@@ -268,6 +352,26 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
                 ...base,
                 color: '#9CA3AF',
               }),
+            }}
+          />
+        </Box>
+
+        <Box sx={{ flex: 1, width: '100%' }}>
+          <TextField
+            label="Model Name"
+            variant="outlined"
+            value={modelName}
+            onChange={(e) => setModelName(e.target.value)}  // Set the model name
+            fullWidth
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                height: '56px',
+                '& fieldset': { borderColor: '#4B5563' },
+                '&:hover fieldset': { borderColor: '#5B21B6' },
+                '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
+              },
+              '& .MuiInputLabel-root': { color: '#9CA3AF' },
+              '& .MuiInputBase-input': { color: '#E2E8F0' },
             }}
           />
         </Box>
@@ -337,17 +441,26 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         {fineTuneLoading ? <CircularProgress size={24} /> : 'Start Fine-Tuning'}
       </Button>
 
-      {error && (
-        <Typography variant="body1" color="error" sx={{ mt: 2, textAlign: 'center' }}>
-          {error}
-        </Typography>
-      )}
+      {
+        error && (
+          <Typography variant="body1" color="error" sx={{ mt: 2, textAlign: 'center' }}>
+            {error}
+          </Typography>
+        )
+      }
 
-      {fineTuneStatus && !error && (
-        <Typography variant="body1" sx={{ mt: 2, color: '#E2E8F0', textAlign: 'center' }}>
-          {fineTuneStatus}
-        </Typography>
-      )}
+      {
+        fineTuneStatus && !error && (
+          <Typography variant="body1" sx={{ mt: 2, color: '#E2E8F0', textAlign: 'center' }}>
+            {fineTuneStatus}
+            {fineTuneStatus === 'STARTED' && (
+              <Typography variant="body2" sx={{ color: '#9CA3AF', mt: 1 }}>
+                This process may take a few minutes to start. Please be patient.
+              </Typography>
+            )}
+          </Typography>
+        )
+      }
 
       <Box sx={{ mt: 3 }}>
         {/* Progress Bar */}
@@ -357,7 +470,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           </Typography>
           <LinearProgressWithLabel
             variant="determinate"
-            value={viewprogress}
+            value={viewProgress}
             sx={{
               height: '8px',
               borderRadius: '4px',
@@ -371,7 +484,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       </Box>
 
       {/* Console/Log Section */}
-      <Accordion sx={{ backgroundColor: '#2D3748', color: '#E2E8F0', mt: 3, borderRadius: 2, boxShadow: 1 }}>
+      <Accordion sx={{ backgroundColor: '#2D3748', color: '#E2E8F0', mt: 3, borderRadius: 2, boxShadow: 1 }} defaultExpanded>
         <AccordionSummary
           expandIcon={<ExpandMoreIcon sx={{ color: '#9CA3AF' }} />}
           sx={{
@@ -388,7 +501,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
             Console Logs
           </Typography>
         </AccordionSummary>
-        <AccordionDetails sx={{ padding: 2, backgroundColor: '#1A202C', maxHeight: 250, overflowY: 'auto', borderRadius: '0 0 8px 8px' }}>
+        <AccordionDetails sx={{ padding: 2, backgroundColor: '#1A202C', maxHeight: 250, overflowY: 'auto', borderRadius: '0 0 8px 8px' }} ref={accordionDetailsRef}>
           <Table sx={{ width: '100%', tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
@@ -411,7 +524,11 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           </Table>
         </AccordionDetails>
       </Accordion>
-    </Box>
+
+      <Box mt={3}>
+        <Graph data={epochLogs} />
+      </Box>
+    </Box >
   );
 };
 

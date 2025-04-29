@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Stack,
   Box,
@@ -12,6 +12,8 @@ import {
   MenuItem,
   IconButton,
   InputAdornment,
+  FormControlLabel,
+  Switch
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { toast } from "react-toastify";
@@ -23,51 +25,81 @@ import {
   downloadDataset,
   getJson,
   clearData,
-} from "../utils/api";
-import ReactJson from "@microlink/react-json-view"; // Updated import
+  loadPrompts,
+  changePrompt,
+  startAutoCaptioning,
+  getCaptioningProgress
+} from "../utils/image_Captioning_api";
+import ReactJson from "@microlink/react-json-view";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { API_URL } from "../utils/api";
+import { useImageCaptioningAppState } from "../utils/ImageCaptioningStore";
 
 interface ImageCaptioningProps {
   toast: typeof toast;
 }
 
-interface ImageData {
-  image_path: string;
-  caption: string;
-  total: number;
-}
-
 const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
-  const [apiKey, setApiKey] = useState<string>(
-    localStorage.getItem("captionApiKey") || ""
-  );
-  const [apiType, setApiType] = useState<"openrouter" | "openai" | "gemini">(
-    "openrouter"
-  );
-  const [openRouterModel, setOpenRouterModel] = useState<string>(
-    "google/gemma-3-12b-it:free"
-  );
-  const [showApiKey, setShowApiKey] = useState<boolean>(false);
-  const [testApiKeyLoading, setTestApiKeyLoading] = useState<boolean>(false);
-  const [imageFolder, setImageFolder] = useState<File | null>(null);
-  const [uploadLoading, setUploadLoading] = useState<boolean>(false);
-  const [downloadLoading, setDownloadLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
-  const [datasetName, setDatasetName] = useState<string>("");
-  const [imageData, setImageData] = useState<ImageData | null>(null);
-  const [caption, setCaption] = useState<string>("");
-  const [saveLoading, setSaveLoading] = useState<boolean>(false);
-  const [jsonData, setJsonData] = useState<any>(null);
-  const [showJsonPreview, setShowJsonPreview] = useState<boolean>(false);
-  const [openClearDialog, setOpenClearDialog] = useState<boolean>(false);
-  const [apiDialogOpen, setApiDialogOpen] = useState(false);
+  const {
+    apiKey,
+    setApiKey,
+    apiType,
+    setApiType,
+    openRouterModel,
+    setOpenRouterModel,
+    showApiKey,
+    setShowApiKey,
+    testApiKeyLoading,
+    setTestApiKeyLoading,
+    imageFolder,
+    setImageFolder,
+    uploadLoading,
+    setUploadLoading,
+    downloadLoading,
+    setDownloadLoading,
+    error,
+    setError,
+    datasetName,
+    setDatasetName,
+    imageData,
+    setImageData,
+    caption,
+    setCaption,
+    saveLoading,
+    setSaveLoading,
+    jsonData,
+    setJsonData,
+    showJsonPreview,
+    setShowJsonPreview,
+    openClearDialog,
+    setOpenClearDialog,
+    apiDialogOpen,
+    setApiDialogOpen,
+    autoCaption,
+    setAutoCaption,
+    prompt,
+    setPrompt,
+    captionLoading,
+    setCaptionLoading,
+    editedPrompt,
+    setEditedPrompt,
+    isEditing,
+    setIsEditing,
+    captioningProgress,
+    setCaptioningProgress,
+    captioningStatus,
+    setCaptioningStatus,
+    showProgressOverlay,
+    setShowProgressOverlay
+  } = useImageCaptioningAppState((state) => state);
 
-  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+  const promptFieldRef = useRef<HTMLInputElement | null>(null);
+  const captionFieldRef = useRef<HTMLInputElement | null>(null);
+  const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
   const openRouterModels = [
     {
@@ -83,6 +115,23 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
   useEffect(() => {
     localStorage.setItem("captionApiKey", apiKey);
   }, [apiKey]);
+
+  useEffect(() => {
+    const fetchPrompt = async () => {
+      const prompt = await loadPrompts();
+      setPrompt(prompt.prompt);
+    };
+    fetchPrompt();
+  }, []);
+
+  useEffect(() => {
+    if (captioningStatus === 'running') {
+      const interval = setInterval(() => {
+        fetchCaptioningProgress();
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [captioningStatus]);
 
   const handleSaveApiKey = () => {
     setApiDialogOpen(false);
@@ -109,7 +158,8 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
     try {
       await getNextImage(localStorage.getItem("datasetName") || "", apiKey, apiType, openRouterModel);
       toast.success("API key is valid!");
-    } catch (error: any) {``
+    } catch (error: any) {
+      ``
       const errorMessage =
         error.message || "Invalid API key. Check the console.";
       setError(errorMessage);
@@ -167,6 +217,8 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       if (data.done) {
         setImageData(null);
         toast.success(data.message);
+        setImageData(null);
+        await handlePreviewJson();
       } else {
         setImageData({
           image_path: data.image_path ?? "",
@@ -234,7 +286,8 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       const url = window.URL.createObjectURL(new Blob([response]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "car_damage_dataset.zip");
+      const datasetName = localStorage.getItem('datasetName') || 'dataset';
+      link.setAttribute("download", `${datasetName}.zip`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -281,6 +334,68 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
     }
     setOpenClearDialog(false);
   };
+
+  const handleToggle = (event: any) => {
+    setAutoCaption(event.target.checked);
+  };
+
+  const handleAdjustPrompt = async () => {
+    if (promptFieldRef.current) {
+      promptFieldRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      handleEditClick();
+    }
+  };
+
+  const handleAutoSaveNext = async () => {
+    const response = await startAutoCaptioning(
+      localStorage.getItem("datasetName") || "",
+      apiKey,
+      apiType,
+      openRouterModel
+    );
+
+    if (response["message"] == "Auto captioning started") {
+      setCaptioningStatus('running');
+      setCaptionLoading(true);
+    }
+  };
+
+  const handleEditClick = async () => {
+    setEditedPrompt(prompt);
+    setIsEditing(true);
+  };
+
+  const handleUpdatePrompt = async () => {
+    console.log("Updated prompt:", editedPrompt);
+    setPrompt(editedPrompt);
+    const response = changePrompt(editedPrompt);
+    setIsEditing(false);
+    console.log("Prompt updated:", response);
+    if (imageData) {
+      fetchNextImage(localStorage.getItem("datasetName") || "");
+      if (captionFieldRef.current) {
+        captionFieldRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  };
+
+  const fetchCaptioningProgress = async () => {
+    const { status, progress } = await getCaptioningProgress();
+    setCaptioningStatus(status);
+    setCaptioningProgress(progress.percentage);
+    if (status === 'running') {
+      setShowProgressOverlay(true);
+    } else {
+      setShowProgressOverlay(false);
+      if (progress.percentage === 100) {
+        toast.success("Captioning completed successfully");
+        setCaptioningProgress(0);
+        setCaptionLoading(false);
+        setImageData(null);
+        await handlePreviewJson();
+      }
+    }
+  }
 
   return (
     <Box
@@ -432,7 +547,40 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
         />
       </Box>
 
-      <Box sx={{ mb: 2 }}>
+      <TextField
+        label="Caption Prompt"
+        value={isEditing ? editedPrompt : prompt}
+        onChange={(e) => setEditedPrompt(e.target.value)}
+        fullWidth
+        multiline
+        rows={3}
+        margin="normal"
+        variant="outlined"
+        sx={{
+          mb: 1,
+          '& .MuiOutlinedInput-root': {
+            '& fieldset': { borderColor: '#4B5563' },
+            '&:hover fieldset': { borderColor: '#5B21B6' },
+            '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
+          },
+          '& .MuiInputLabel-root': { color: '#9CA3AF' },
+          '& .MuiInputBase-input': { color: '#E2E8F0' },
+        }}
+        disabled={!isEditing}
+        inputRef={promptFieldRef}
+      />
+
+      {isEditing ? (
+        <Button variant="contained" color="primary" onClick={handleUpdatePrompt}>
+          Update Prompt
+        </Button>
+      ) : (
+        <Button variant="outlined" onClick={handleEditClick}>
+          Edit Prompt
+        </Button>
+      )}
+
+      <Box sx={{ mt: 2, mb: 2 }}>
         <Typography variant="body2" sx={{ color: "#E2E8F0", mb: 1 }}>
           Upload Image Folder (ZIP file, max 50 MB):
         </Typography>
@@ -583,24 +731,46 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
           {error}
         </Typography>
       )}
+
       {imageData && (
         <Box>
-          <Typography variant="body1" sx={{ color: "#E2E8F0", mb: 1 }}>
-            Processing image {imageData.image_path} (Remaining:{" "}
-            {imageData.total})
+          {/* Toggle Button */}
+          <FormControlLabel
+            control={
+              <Switch
+                checked={autoCaption}
+                onChange={handleToggle}
+                color="primary"
+                sx={{ mb: 2 }}
+              />
+            }
+            label={autoCaption ? 'Auto Captioning' : 'Manual Captioning'}
+            sx={{ mb: 2, color: '#E2E8F0' }}
+          />
+
+          {/* Image Display */}
+          <Typography variant="body1" sx={{ color: '#E2E8F0', mb: 1 }}>
+            {
+              autoCaption
+                ? 'Caption for the first image'
+                : `Processing image ${imageData.image_path} (Remaining: ${imageData.total})`
+            }
           </Typography>
-          <Box sx={{ mb: 2, textAlign: "center" }}>
+
+          <Box sx={{ mb: 2, textAlign: 'center' }}>
             <img
-              src={`${API_URL}/api/datasets/images/${localStorage.getItem("datasetName") || ""}/${imageData.image_path}`}
+              src={`${API_URL}/api/datasets/images/${localStorage.getItem('datasetName') || ''}/${imageData.image_path}`}
               alt="Car Image"
               style={{
-                maxWidth: "300px",
-                height: "auto",
-                border: "2px solid #ddd",
-                borderRadius: "4px",
+                maxWidth: '300px',
+                height: 'auto',
+                border: '2px solid #ddd',
+                borderRadius: '4px',
               }}
             />
           </Box>
+
+          {/* Caption Input */}
           <TextField
             label="Condition Description"
             value={caption}
@@ -612,82 +782,147 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
             variant="outlined"
             sx={{
               mb: 2,
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": {
-                  borderColor: "#4B5563",
-                },
-                "&:hover fieldset": {
-                  borderColor: "#5B21B6",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#5B21B6",
-                },
+              '& .MuiOutlinedInput-root': {
+                '& fieldset': { borderColor: '#4B5563' },
+                '&:hover fieldset': { borderColor: '#5B21B6' },
+                '&.Mui-focused fieldset': { borderColor: '#5B21B6' },
               },
-              "& .MuiInputLabel-root": {
-                color: "#9CA3AF",
-              },
-              "& .MuiInputBase-input": {
-                color: "#E2E8F0",
-              },
+              '& .MuiInputLabel-root': { color: '#9CA3AF' },
+              '& .MuiInputBase-input': { color: '#E2E8F0' },
             }}
+            inputRef={captionFieldRef}
           />
-          <Button
-            variant="contained"
-            onClick={handleSaveNext}
-            disabled={saveLoading}
-            sx={{
-              mb: 2,
-              backgroundColor: "#4CAF50",
-              "&:hover": {
-                backgroundColor: "#45a049",
-              },
-              borderRadius: "8px",
-              textTransform: "none",
-              fontWeight: 500,
-              width: { xs: "100%", sm: "auto" },
-            }}
-          >
-            {saveLoading ? <CircularProgress size={24} /> : "Save & Next"}
-          </Button>
+
+          {/* Generate Caption Button (Auto mode only) */}
+          {autoCaption ? (
+            <>
+              <Button
+                variant="contained"
+                onClick={handleAdjustPrompt}
+                disabled={captionLoading}
+                sx={{
+                  mb: 2,
+                  mr: 2,
+                  backgroundColor: '#5B21B6',
+                  '&:hover': { backgroundColor: '#4C1D95' },
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  width: { xs: '100%', sm: 'auto' },
+                }}
+              >
+                {captionLoading ? <CircularProgress size={24} /> : 'Adjust Prompt'}
+              </Button>
+
+              <Button
+                variant="contained"
+                onClick={handleAutoSaveNext}
+                disabled={captionLoading}
+                sx={{
+                  mb: 2,
+                  mr: 2,
+                  backgroundColor: '#4CAF50',
+                  '&:hover': { backgroundColor: '#4C1D95' },
+                  borderRadius: '8px',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  width: { xs: '100%', sm: 'auto' },
+                }}
+              >
+                {captionLoading ? <CircularProgress size={24} /> : 'Generate Captions for All Images'}
+              </Button>
+            </>
+          ) : (
+            < Button
+              variant="contained"
+              onClick={handleSaveNext}
+              disabled={saveLoading || (autoCaption && captionLoading)}
+              sx={{
+                mb: 2,
+                backgroundColor: '#4CAF50',
+                '&:hover': { backgroundColor: '#45a049' },
+                borderRadius: '8px',
+                textTransform: 'none',
+                fontWeight: 500,
+                width: { xs: '100%', sm: 'auto' },
+              }}
+            >
+              {saveLoading ? <CircularProgress size={24} /> : 'Save & Next'}
+            </Button>
+          )}
         </Box>
-      )}
-      {showJsonPreview && jsonData && (
+      )
+      }
+
+      {showProgressOverlay && (
         <Box
           sx={{
-            mt: 2,
-            p: 2,
-            border: "1px solid #4B5563",
-            borderRadius: "8px",
-            backgroundColor: "#1F2937",
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100vh',
+            bgcolor: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(5px)',
+            zIndex: 10,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            flexDirection: 'column',
           }}
         >
-          <Typography variant="h6" sx={{ color: "#E2E8F0", mb: 2 }}>
-            JSON Data Preview
-          </Typography>
-          <ReactJson
-            src={jsonData}
-            theme="monokai"
-            collapsed={1}
-            style={{ backgroundColor: "transparent" }}
+          <CircularProgress
+            size={80}
+            thickness={5}
+            sx={{ color: '#5B21B6', mb: 2 }}
+            variant="determinate"
+            value={captioningProgress}
           />
-          <Button
-            variant="contained"
-            onClick={() => setShowJsonPreview(false)}
-            sx={{
-              mt: 2,
-              backgroundColor: "#EF5350",
-              "&:hover": {
-                backgroundColor: "#F44336",
-              },
-              borderRadius: "8px",
-              textTransform: "none",
-              fontWeight: 500,
-            }}
-          >
-            Close
-          </Button>
+          <Typography variant="h6" sx={{ color: '#fff' }}>
+            Captioning Progress: {captioningProgress}%
+          </Typography>
         </Box>
       )}
+
+      {
+        showJsonPreview && jsonData && (
+          <Box
+            sx={{
+              mt: 2,
+              p: 2,
+              border: "1px solid #4B5563",
+              borderRadius: "8px",
+              backgroundColor: "#1F2937",
+            }}
+          >
+            <Typography variant="h6" sx={{ color: "#E2E8F0", mb: 2 }}>
+              JSON Data Preview
+            </Typography>
+            <ReactJson
+              src={jsonData}
+              theme="monokai"
+              collapsed={1}
+              style={{ backgroundColor: "transparent" }}
+            />
+            <Button
+              variant="contained"
+              onClick={() => setShowJsonPreview(false)}
+              sx={{
+                mt: 2,
+                backgroundColor: "#EF5350",
+                "&:hover": {
+                  backgroundColor: "#F44336",
+                },
+                borderRadius: "8px",
+                textTransform: "none",
+                fontWeight: 500,
+              }}
+            >
+              Close
+            </Button>
+          </Box>
+        )
+      }
       <Dialog
         open={openClearDialog}
         onClose={() => setOpenClearDialog(false)}
@@ -715,11 +950,11 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
       <Dialog
         open={apiDialogOpen}
         onClose={() => setApiDialogOpen(false)}
-        maxWidth="sm" // You can try "sm", "md", or even false for full control
+        maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: {
-            width: '500px', // You can adjust this value (e.g., 550px, 600px)
+            width: '500px',
             maxWidth: '90%',
           },
         }}
@@ -773,7 +1008,7 @@ const ImageCaptioning: React.FC<ImageCaptioningProps> = ({ toast }) => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Box >
   );
 };
 
