@@ -42,7 +42,7 @@ def save_training_log(model_name, config, metrics):
 # Test data
 test_model = "unsloth/Llama-3.2-11B-Vision-bnb-4bit"
 
-test_config = {"batch_size": 4, "learning_rate": 2e-5, "epochs": 10}
+test_config = {"batch_size": 8, "learning_rate": 2e-5, "epochs": 10}
 test_metrics = {"peak_memory_gb": 12.3, "train_runtime_minutes": 45.6}
 
 # Run test

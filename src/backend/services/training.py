@@ -51,6 +51,10 @@ def retreive_captioned_dataset():
 
 
 def save_training_log(model_name, config, metrics):
+    print("Model Name:", model_name)
+    print("Config:", config)
+    print("Metrics:", metrics)
+
     log_data = {
         "model": model_name,
         "batch_size": config["batch_size"],
