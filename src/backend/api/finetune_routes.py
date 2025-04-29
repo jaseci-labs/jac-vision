@@ -5,6 +5,7 @@ import uuid
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse
 from schemas.models import (
+    AdaptFineTuningRequest,
     FineTuningRequest,
     GGUFSaveRequest,
     GoalTrainingRequest,
@@ -13,14 +14,34 @@ from schemas.models import (
 from services.save import save_gguf_model, save_model
 from services.training import (
     AVAILABLE_MODELS,
+    get_tensorboard_logs,
     retreive_captioned_dataset,
     task_status,
+    train_adapt_model,
     train_model,
     train_model_with_goal,
     trained_models,
 )
 
 router = APIRouter()
+
+adaptive_configs = {
+    "unsloth/Llama-3.2-11B-Vision-bnb-4bit": {
+        "batch_size": 4,
+        "learning_rate": 2e-5,
+        "epochs": 10,
+    },
+    "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit": {
+        "batch_size": 8,
+        "learning_rate": 3e-4,
+        "epochs": 8,
+    },
+    "unsloth/Pixtral-12B-2409": {
+        "batch_size": 4,
+        "learning_rate": 2e-5,
+        "epochs": 10,
+    },
+}
 
 
 @router.get("/models")
@@ -43,12 +64,31 @@ async def start_finetuning(
         model_name=request.model_name,
         task_id=task_id,
         dataset_path=request.dataset_path,
+        app_name=request.app_name,
     )
     return {"task_id": task_id, "status": "STARTED"}
 
 
-@router.post("/tune-with-goal")
-async def train_with_goal(
+@router.post("/start-adapt-finetune")
+async def start_adapt_finetuning(
+    request: AdaptFineTuningRequest, background_tasks: BackgroundTasks
+):
+    task_id = str(uuid.uuid4())
+    background_tasks.add_task(
+        train_adapt_model,
+        model_name=request.model_name,
+        task_id=task_id,
+        dataset_path=request.dataset_path,
+        app_name=request.app_name,
+        batch_size=request.batch_size,
+        learning_rate=request.learning_rate,
+        epochs=request.epochs,
+    )
+    return {"task_id": task_id, "status": "STARTED"}
+
+
+@router.post("/finetune-with-goal")
+async def finetune_with_goal(
     request: GoalTrainingRequest, background_tasks: BackgroundTasks
 ):
     task_id = str(uuid.uuid4())
@@ -60,6 +100,7 @@ async def train_with_goal(
             request.dataset_path,
             request.goal_type,
             request.target,
+            request.app_name,
         )
         return {"task_id": task_id, "status": "STARTED"}
     except Exception as e:
@@ -71,22 +112,46 @@ def check_status(task_id: str):
     status = task_status.get(task_id)
     if not status:
         raise HTTPException(status_code=404, detail="Task not found")
-    return {k: v for k, v in status.items() if k != "model"}
+    return {
+        "status": status.get("status"),
+        "progress": status.get("progress"),
+        "epoch_metrics": status.get("epoch_metrics"),
+        "current_epoch": status.get("current_epoch", 0),
+        "metrics": status.get("metrics", {}),
+    }
 
 
 @router.get("/stream-status/{task_id}")
 def stream_status(task_id: str):
     def event_generator():
+        last_epoch = -1
         while True:
             status = task_status.get(task_id)
             if not status:
                 yield f"data: {json.dumps({'error': 'Task not found'})}\n\n"
                 break
+
+            # Send epoch updates
+            if (
+                "epoch_metrics" in status
+                and status["epoch_metrics"]["epoch"] > last_epoch
+            ):
+                last_epoch = status["epoch_metrics"]["epoch"]
+                epoch_data = json.dumps(
+                    {"type": "epoch_update", "data": status["epoch_metrics"]}
+                )
+                yield f"data: {epoch_data}\n\n"
+
+            # Send regular status updates
             sanitized_status = {k: v for k, v in status.items() if k != "model"}
-            yield f"data: {json.dumps(sanitized_status)}\n\n"
+            status_data = json.dumps(
+                {"type": "status_update", "data": sanitized_status}
+            )
+            yield f"data: {status_data}\n\n"
+
             if status["status"] in ["COMPLETED", "FAILED"]:
                 break
-            time.sleep(2)
+            time.sleep(1)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -128,3 +193,31 @@ def get_training_metrics(task_id: str):
         "metrics": status.get("metrics", {}),
         "log_history": status.get("log_history", []),
     }
+
+
+@router.get("/adaptive-config/{model_name}")
+async def get_adaptive_config(model_name: str):
+
+    decoded_model_name = model_name.replace("%2F", "/")  # Decode URL-encoded slashes
+    print(f"Fetching adaptive config for model: {decoded_model_name}")
+    if decoded_model_name not in adaptive_configs:
+        raise HTTPException(
+            status_code=404, detail="Model not found in adaptive configurations"
+        )
+
+    config = adaptive_configs.get(decoded_model_name)
+
+    return {
+        "model": decoded_model_name,
+        "batch_size": config["batch_size"],
+        "learning_rate": config["learning_rate"],
+        "epochs": config["epochs"],
+    }
+
+
+@router.get("/tensorboard-logs/{app_name}")
+async def get_tensorboard_metrics(app_name: str):
+    try:
+        return get_tensorboard_logs(app_name)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))

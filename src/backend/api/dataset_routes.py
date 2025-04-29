@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -7,16 +8,22 @@ from io import BytesIO
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, StreamingResponse
-from schemas.models import AutoAnnotateRequest, CaptionRequest
+from schemas.models import (
+    AutoAnnotateRequest,
+    CaptionRequest,
+    PreviewResponse,
+    PromptRequest,
+)
 from services.dataset_service import (
-    auto_annotate_task,
-    auto_annotation_status,
+    DEFAULT_PROMPT,
+    caption_workflow_state,
     get_all_images,
     load_existing_data,
     process_image,
+    process_image_with_prompt,
 )
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -79,7 +86,10 @@ async def get_next_image(
     if not image_files:
         return {"done": True, "message": "All images have been processed!"}
     image_path, relative_path = image_files[0]
-    image_data = process_image(image_path, relative_path, api_key, api_type, model)
+    prompt = caption_workflow_state["custom_prompt"] or DEFAULT_PROMPT
+    image_data = process_image_with_prompt(
+        image_path, relative_path, prompt, api_key, api_type, model
+    )
     if image_data:
         return {
             "image_path": relative_path,
@@ -104,15 +114,23 @@ async def save_caption(request: CaptionRequest):
 
 @router.get("/download-dataset")
 async def download_dataset(file_path: str):
-    json_file_path = os.path.join("jsons", file_path)
+    dataset_path = os.path.join("datasets", file_path)
+
+    if not os.path.exists(dataset_path):
+        raise HTTPException(status_code=404, detail="Dataset path not found")
+
     buffer = BytesIO()
-    with zipfile.ZipFile(buffer, "w") as zip_file:
-        if os.path.exists(json_file_path):
-            zip_file.write(json_file_path)
-        for root, _, files in os.walk("datasets/CarDataset"):
-            for file in files:
-                zip_file.write(os.path.join(root, file))
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        if os.path.isfile(dataset_path):
+            zip_file.write(dataset_path, arcname=os.path.basename(dataset_path))
+        else:
+            for root, _, files in os.walk(dataset_path):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    arcname = os.path.relpath(full_path, start=dataset_path)
+                    zip_file.write(full_path, arcname=arcname)
     buffer.seek(0)
+
     return StreamingResponse(
         buffer,
         media_type="application/zip",
@@ -122,7 +140,7 @@ async def download_dataset(file_path: str):
 
 @router.get("/download-json")
 async def download_json(file_path: str):
-    json_file_path = os.path.join("jsons", file_path)
+    json_file_path = os.path.join("jsons", f"{file_path}.json")
     if not os.path.exists(json_file_path):
         raise HTTPException(status_code=404, detail="JSON file not found")
     return FileResponse(
@@ -139,14 +157,14 @@ async def serve_image(filename: str, folder_path: str = ""):
 
 
 @router.get("/get-json")
-async def get_json():
-    return {"data": load_existing_data()}
+async def get_json(file_path: str):
+    return {"data": load_existing_data(file_path)}
 
 
 @router.delete("/clear-data")
 async def clear_data(file_path: str = ""):
     root_folder = os.path.join("datasets", file_path)
-    json_file_path = os.path.join("jsons", file_path)
+    json_file_path = os.path.join("jsons", f"{file_path}.json")
     if os.path.exists(json_file_path):
         os.remove(json_file_path)
     if os.path.exists(root_folder):
@@ -155,51 +173,152 @@ async def clear_data(file_path: str = ""):
     return {"message": "All data cleared successfully"}
 
 
-@router.post("/auto-annotate")
-async def start_auto_annotate(
-    request: AutoAnnotateRequest, background_tasks: BackgroundTasks
-):
-    if auto_annotation_status["running"]:
-        raise HTTPException(400, "Annotation already in progress")
+@router.get("/get-default-prompt")
+async def get_default_prompt():
+    return {"prompt": caption_workflow_state["custom_prompt"]}
 
-    # Reset status
-    auto_annotation_status.update(
-        {
+
+@router.post("/set-prompt")
+async def set_custom_prompt(request: PromptRequest):
+    caption_workflow_state["custom_prompt"] = request.prompt
+    return {"message": "Prompt updated successfully"}
+
+
+@router.get("/show-captioning-preview")
+async def preview_captioning(
+    file_path: str,
+    api_key: str,  # Use OpenRouter API key for preview
+    api_type: str = "openrouter",
+    model: str = "google/gemma-3-12b-it:free",
+):
+    if not api_key:
+        raise HTTPException(400, "API key is required")
+    if not file_path:
+        raise HTTPException(400, "File path is required")
+
+    print("Starting preview_captioning endpoint")
+    image_files = get_all_images(file_path)
+    if not image_files:
+        raise HTTPException(400, "No images available for preview")
+
+    image_path, relative_path = image_files[0]
+    prompt = caption_workflow_state["custom_prompt"] or DEFAULT_PROMPT
+
+    try:
+        caption = process_image_with_prompt(
+            image_path,
+            relative_path,
+            prompt,
+            api_key,
+            api_type,
+            model,
+        )
+        print(f"Preview generated for image: {relative_path}")
+        return PreviewResponse(
+            image_path=relative_path, caption=caption.caption, prompt_used=prompt
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Preview failed: {str(e)}")
+
+
+async def auto_caption_task(
+    api_key: str,  # Use OpenRouter API key for auto captioning
+    file_path: str,
+    api_type: str = "openrouter",
+    model: str = "google/gemma-3-12b-it:free",
+):
+    try:
+        caption_workflow_state["current_job"] = True
+        print("Starting auto_caption_task")
+        image_files = get_all_images(file_path)
+
+        print(f"Found {len(image_files)} images for captioning")
+        caption_workflow_state["progress"] = {
+            "total": len(image_files),
             "processed": 0,
             "failed": 0,
             "errors": [],
-            "total_images": 0,
         }
-    )
 
-    background_tasks.add_task(
-        auto_annotate_task, request.api_key, request.api_type, request.model
-    )
-    return {"message": "Auto annotation started"}
+        prompt = caption_workflow_state["custom_prompt"] or DEFAULT_PROMPT
+        print(f"Using prompt: {prompt}")
 
+        json_file_path = os.path.join("jsons", f"{file_path}.json")
+        print(f"JSON file path: {json_file_path}")
 
-@router.get("/auto-annotate/status")
-async def get_annotation_status():
-    return {
-        "status": "running" if auto_annotation_status["running"] else "idle",
-        "progress": {
-            "processed": auto_annotation_status["processed"],
-            "failed": auto_annotation_status["failed"],
-            "total": auto_annotation_status["total_images"],
-            "percentage": (
-                round(
-                    (
-                        auto_annotation_status["processed"]
-                        + auto_annotation_status["failed"]
-                    )
-                    / max(auto_annotation_status["total_images"], 1)
-                    * 100,
-                    2,
+        for idx, (image_path, relative_path) in enumerate(image_files):
+            print(f"\nProcessing image {idx + 1}/{len(image_files)}: {relative_path}")
+            try:
+                caption = process_image_with_prompt(
+                    image_path,
+                    relative_path,
+                    prompt,
+                    api_key,
+                    api_type,
+                    model,
                 )
-                if auto_annotation_status["total_images"] > 0
-                else 0
-            ),
+                print(f"Generated caption for {relative_path}: {caption}")
+
+                request = CaptionRequest(
+                    dataset_path=file_path,
+                    image_path=relative_path,
+                    caption=caption.caption,
+                )
+                await save_caption(request)
+                print(f"Caption saved for {relative_path}")
+
+                caption_workflow_state["progress"]["processed"] += 1
+            except Exception as e:
+                print(f"Error processing {relative_path}: {str(e)}")
+                caption_workflow_state["progress"]["failed"] += 1
+                caption_workflow_state["progress"]["errors"].append(
+                    f"{relative_path}: {str(e)}"
+                )
+
+            finally:
+                await asyncio.sleep(1)  # Rate limiting
+
+    except Exception as e:
+        print(f"Auto-captioning failed: {str(e)}")
+    finally:
+        caption_workflow_state["current_job"] = False  # Reset job status
+        print("auto_caption_task completed")
+
+
+@router.post("/start-auto-captioning")
+async def start_auto_captioning(
+    background_tasks: BackgroundTasks,
+    api_key: str = Form(...),
+    file_path: str = Form(...),
+    api_type: str = Form("openrouter"),
+    model: str = Form("google/gemma-3-12b-it:free"),
+):
+    print("Received request to start auto captioning")
+    if caption_workflow_state["current_job"]:
+        print("Captioning job already in progress")
+        raise HTTPException(400, "Captioning job already in progress")
+
+    print("Starting background task for auto captioning")
+    background_tasks.add_task(
+        auto_caption_task,
+        api_key,
+        file_path,
+        api_type,
+        model,
+    )
+    return {"message": "Auto captioning started"}
+
+
+@router.get("/captioning/progress")
+async def get_captioning_progress():
+    progress = caption_workflow_state["progress"]
+    total = progress["total"]
+    processed = progress["processed"] + progress["failed"]
+
+    return {
+        "status": "running" if caption_workflow_state["current_job"] else "idle",
+        "progress": {
+            **progress,
+            "percentage": (round(processed / total * 100, 2) if total > 0 else 0),
         },
-        "current_image": auto_annotation_status["current_image"],
-        "errors": auto_annotation_status["errors"][-5:],  # Last 5 errors
     }

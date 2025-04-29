@@ -91,8 +91,20 @@ class AutoAnnotateRequest(BaseModel):
     model: str = "google/gemma-3-12b-it:free"
 
 
-class AnnotationStatusResponse(BaseModel):
-    status: str
-    progress: dict
-    current_image: Optional[str]
-    errors: List[str]
+class PromptRequest(BaseModel):
+    prompt: str
+
+
+class PreviewResponse(BaseModel):
+    image_path: str
+    caption: str
+    prompt_used: str
+
+
+class AdaptFineTuningRequest(BaseModel):
+    model_name: str
+    dataset_path: str
+    app_name: str
+    batch_size: Optional[int] = None
+    learning_rate: Optional[float] = None
+    epochs: Optional[int] = None

@@ -1,5 +1,75 @@
 import torch
 from sklearn.metrics import accuracy_score
+from transformers import (
+    TrainerCallback,
+    TrainerControl,
+    TrainerState,
+    TrainingArguments,
+)
+
+task_status = {}
+
+
+class ProgressCallback(TrainerCallback):
+    def __init__(self, task_id: str, total_steps: int):
+        self.task_id = task_id
+        self.total_steps = total_steps
+        self.current_epoch = 0
+
+    def on_step_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        progress = int((state.global_step / self.total_steps) * 100)
+        task_status[self.task_id] = {
+            "status": "RUNNING",
+            "progress": progress,
+            "loss": state.log_history[-1].get("loss") if state.log_history else None,
+            "learning_rate": (
+                state.log_history[-1].get("learning_rate")
+                if state.log_history
+                else None
+            ),
+            "epoch": state.epoch,
+            "error": None,
+        }
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        task_status[self.task_id] = {
+            "status": "RUNNING",
+            "progress": 0,
+            "loss": None,
+            "learning_rate": None,
+            "epoch": 0,
+            "error": None,
+        }
+
+    def on_train_end(self, args, state, control, **kwargs):
+        task_status[self.task_id].update({"status": "COMPLETED", "progress": 100})
+
+    def on_epoch_end(self, args, state, control, **kwargs):
+        train_metrics = {
+            "training_loss": state.log_history[-1].get("loss"),
+            "training_accuracy": state.log_history[-1].get("train_accuracy"),
+        }
+
+        eval_metrics = next(
+            (log for log in reversed(state.log_history) if "eval_loss" in log), None
+        )
+
+        if eval_metrics:
+            task_status[self.task_id]["epoch_metrics"] = {
+                "epoch": self.current_epoch,
+                "training_loss": train_metrics["training_loss"],
+                "training_accuracy": train_metrics["training_accuracy"],
+                "validation_loss": eval_metrics.get("eval_loss"),
+                "validation_accuracy": eval_metrics.get("eval_accuracy"),
+            }
+
+        self.current_epoch += 1
 
 
 def print_training_summary(trainer):
@@ -38,6 +108,12 @@ def compute_metrics(eval_preds):
     predictions, labels = eval_preds
     predictions = predictions.argmax(axis=-1)
     acc = accuracy_score(labels, predictions)
+
+    loss = None
+    if isinstance(eval_preds, tuple) and len(eval_preds) >= 3:
+        loss = eval_preds[2].mean().item()
+
     return {
         "eval_accuracy": acc,
+        "eval_loss": loss,
     }

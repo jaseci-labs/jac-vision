@@ -1,9 +1,9 @@
+from unsloth import FastVisionModel
 import os
 
 import pandas as pd
 from PIL import Image
 from transformers import TextStreamer
-from unsloth import FastVisionModel
 
 # --- CONFIGURABLES ---
 image_folder = "inference_images"  # Folder with images to process

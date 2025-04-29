@@ -1,11 +1,12 @@
+from unsloth import FastVisionModel
 import base64
 import sqlite3
 from datetime import datetime
 from io import BytesIO
 
 import google.generativeai as genai
+import numpy as np
 import openai
-import requests
 from PIL import Image
 
 

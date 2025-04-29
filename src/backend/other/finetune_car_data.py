@@ -1,3 +1,5 @@
+from unsloth import FastVisionModel, is_bf16_supported
+from unsloth.trainer import UnslothVisionDataCollator
 import json
 import os
 
@@ -5,8 +7,7 @@ import pandas as pd
 from PIL import Image
 from transformers import TextStreamer
 from trl import SFTConfig, SFTTrainer
-from unsloth import FastVisionModel, is_bf16_supported
-from unsloth.trainer import UnslothVisionDataCollator
+
 
 json_path = "car_damage_data.json"
 image_dir = "DamageAssessment_1"

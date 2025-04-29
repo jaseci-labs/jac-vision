@@ -3,7 +3,13 @@ from io import BytesIO
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from PIL import Image
-from services.inference_service import list_models, load_model, process_vqa
+from services.inference_service import (
+    compare_responses,
+    list_models,
+    load_model,
+    process_unfinetuned_vqa,
+    process_vqa,
+)
 
 router = APIRouter()
 
@@ -17,10 +23,10 @@ async def get_finetuned_models():
 
 
 @router.post("/load-model")
-async def load_finetuned_model(task_id: str = Form(...)):
+async def load_finetuned_model(app_name: str = Form(...)):
     try:
-        load_model(task_id)
-        return {"message": f"Model {task_id} loaded successfully"}
+        load_model(app_name)
+        return {"message": f"Model {app_name} loaded successfully"}
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -29,7 +35,7 @@ async def load_finetuned_model(task_id: str = Form(...)):
 async def process_inference(
     image: UploadFile = File(None),
     question: str = Form(...),
-    task_id: str = Form(...),
+    app_name: str = Form(...),
 ):
     try:
         image_content = await image.read() if image else None
@@ -37,7 +43,56 @@ async def process_inference(
             Image.open(BytesIO(image_content)).convert("RGB") if image_content else None
         )
 
-        result = process_vqa(task_id, image_obj, question)
+        result = process_vqa(app_name, image_obj, question)
         return {"answer": result}
     except Exception as e:
         raise HTTPException(500, str(e))
+
+
+@router.post("/process_vqa/unfinetuned")
+async def process_unfinetuned_vqa_endpoint(
+    model: str = Form(...),
+    image: UploadFile = File(None),
+    question: str = Form(...),
+):
+    if not question:
+        raise HTTPException(status_code=400, detail="Missing question")
+    if model not in [
+        "unsloth/Llama-3.2-11B-Vision-bnb-4bit",
+        "unsloth/Qwen2-VL-2B-Instruct-bnb-4bit",
+        "unsloth/Pixtral-12B-2409",
+    ]:
+        raise HTTPException(status_code=400, detail="Invalid model name")
+
+    image_content = await image.read() if image else None
+    image_obj = (
+        Image.open(BytesIO(image_content)).convert("RGB") if image_content else None
+    )
+
+    print(f"Processing image: {image_obj}")
+    print(f"Processing image size: {image_obj.size if image_obj else 'No image'}")
+
+    try:
+        result = process_unfinetuned_vqa(
+            image=image_obj,
+            question=question,
+            model_name=model,
+        )
+        return {"answer": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/compare_responses")
+async def compare_responses_endpoint(
+    question: str = Form(...),
+    finetuned_response: str = Form(...),
+    unfinetuned_response: str = Form(...),
+):
+    try:
+        comparison = compare_responses(
+            question, finetuned_response, unfinetuned_response
+        )
+        return comparison
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -9,8 +9,8 @@ from services.vqa_service import (
 router = APIRouter()
 
 
-@router.post("/vqa")
-async def vqa_endpoint(
+@router.post("/process_vqa")
+async def process_vqa_endpoint(
     model: str = Form(None),
     image: UploadFile = File(None),
     question: str = Form(None),
@@ -41,7 +41,7 @@ async def vqa_endpoint(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/vqa/history")
+@router.get("/history")
 async def get_vqa_history():
     try:
         return get_history()
@@ -49,7 +49,7 @@ async def get_vqa_history():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/vqa/history/delete/{history_id}")
+@router.delete("/history/delete/{history_id}")
 async def delete_history(history_id: int):
     try:
         return delete_history_entry(history_id)
@@ -57,7 +57,7 @@ async def delete_history(history_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/vqa/history/clear")
+@router.delete("/history/clear")
 async def clear_vqa_history():
     try:
         return clear_history()
