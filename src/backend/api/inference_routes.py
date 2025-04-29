@@ -3,7 +3,13 @@ from io import BytesIO
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from PIL import Image
-from services.inference_service import compare_responses, list_models, load_model, process_unfinetuned_vqa, process_vqa
+from services.inference_service import (
+    compare_responses,
+    list_models,
+    load_model,
+    process_unfinetuned_vqa,
+    process_vqa,
+)
 
 router = APIRouter()
 
@@ -76,6 +82,7 @@ async def process_unfinetuned_vqa_endpoint(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/compare_responses")
 async def compare_responses_endpoint(
     question: str = Form(...),
@@ -83,7 +90,9 @@ async def compare_responses_endpoint(
     unfinetuned_response: str = Form(...),
 ):
     try:
-        comparison = compare_responses(question, finetuned_response, unfinetuned_response)
+        comparison = compare_responses(
+            question, finetuned_response, unfinetuned_response
+        )
         return comparison
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

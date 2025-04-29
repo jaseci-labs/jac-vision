@@ -43,6 +43,7 @@ adaptive_configs = {
     },
 }
 
+
 @router.get("/models")
 def get_models():
     return {"models": AVAILABLE_MODELS}
@@ -193,6 +194,7 @@ def get_training_metrics(task_id: str):
         "log_history": status.get("log_history", []),
     }
 
+
 @router.get("/adaptive-config/{model_name}")
 async def get_adaptive_config(model_name: str):
 
@@ -200,8 +202,7 @@ async def get_adaptive_config(model_name: str):
     print(f"Fetching adaptive config for model: {decoded_model_name}")
     if decoded_model_name not in adaptive_configs:
         raise HTTPException(
-            status_code=404,
-            detail="Model not found in adaptive configurations"
+            status_code=404, detail="Model not found in adaptive configurations"
         )
 
     config = adaptive_configs.get(decoded_model_name)
@@ -210,8 +211,9 @@ async def get_adaptive_config(model_name: str):
         "model": decoded_model_name,
         "batch_size": config["batch_size"],
         "learning_rate": config["learning_rate"],
-        "epochs": config["epochs"]
+        "epochs": config["epochs"],
     }
+
 
 @router.get("/tensorboard-logs/{app_name}")
 async def get_tensorboard_metrics(app_name: str):

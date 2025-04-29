@@ -1,6 +1,10 @@
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from services.vqa_service import (clear_history, delete_history_entry,
-                                  get_history, process_vqa)
+from services.vqa_service import (
+    clear_history,
+    delete_history_entry,
+    get_history,
+    process_vqa,
+)
 
 router = APIRouter()
 

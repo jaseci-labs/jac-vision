@@ -2,14 +2,14 @@ from unsloth import FastVisionModel
 import os
 from io import BytesIO
 
+from bert_score import score as bert_scorer
 from peft import PeftConfig, PeftModel
-from transformers import AutoTokenizer, TextStreamer
 from PIL import Image
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
-from bert_score import score as bert_scorer
+from transformers import AutoTokenizer, TextStreamer
 
-snt_model = SentenceTransformer('all-MiniLM-L6-v2')
+snt_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 loaded_models = {}
 
@@ -66,17 +66,18 @@ def process_vqa(app_name, image, question):
         max_new_tokens=128,
         use_cache=True,
         temperature=1.5,
-        min_p=0.1
+        min_p=0.1,
     )
 
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
 
 def process_unfinetuned_vqa(image, question, model_name):
 
     model, tokenizer = FastVisionModel.from_pretrained(
         model_name=model_name,
         load_in_4bit=True,
-        use_gradient_checkpointing = "unsloth",
+        use_gradient_checkpointing="unsloth",
     )
 
     print(f"Loaded model: {model_name}")
@@ -108,7 +109,7 @@ def process_unfinetuned_vqa(image, question, model_name):
         max_new_tokens=128,
         use_cache=True,
         temperature=1.5,
-        min_p=0.1
+        min_p=0.1,
     )
 
     print(f"Generated output: {outputs}")
@@ -128,16 +129,11 @@ def compare_responses(question, response1, response2):
             "bert_score": {
                 "precision": float(P.mean().item()),
                 "recall": float(R.mean().item()),
-                "f1": float(F1.mean().item())
+                "f1": float(F1.mean().item()),
             },
             "question": question,
-            "responses": {
-                "response1": response1,
-                "response2": response2
-            }
+            "responses": {"response1": response1, "response2": response2},
         }
     except Exception as e:
         print(f"[ERROR] Failed to compare responses: {e}")
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}

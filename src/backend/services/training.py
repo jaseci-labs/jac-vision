@@ -1,9 +1,9 @@
 from unsloth import FastVisionModel, is_bf16_supported
 from unsloth.trainer import UnslothVisionDataCollator
-from datetime import datetime
 import json
 import os
 import traceback
+from datetime import datetime
 
 import pandas as pd
 from datasets import load_dataset
@@ -16,10 +16,10 @@ from services.training_metrics import (
     task_status,
 )
 from sklearn.model_selection import train_test_split
+from tensorboard.backend.event_processing import event_accumulator
 from trl import SFTConfig, SFTTrainer
 from utils.config_loader import get_adaptive_config, load_model_config
 from utils.dataset_utils import get_custom_dataset
-from tensorboard.backend.event_processing import event_accumulator
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
 os.environ["UNSLOTH_RETURN_LOGITS"] = "1"
@@ -58,7 +58,7 @@ def save_training_log(model_name, config, metrics):
         "epochs": config["epochs"],
         "peak_memory_gb": metrics.get("peak_memory_gb", 0),
         "training_time": metrics.get("train_runtime_minutes", 0),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
     print(f"[LOG DATA]: {log_data}")
@@ -193,6 +193,7 @@ def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str)
     except Exception as e:
         task_status[task_id] = {"status": "FAILED", "progress": 0, "error": str(e)}
 
+
 def get_tensorboard_logs(app_name: str):
 
     log_dir = f"logs/{app_name}"
@@ -207,9 +208,10 @@ def get_tensorboard_logs(app_name: str):
         "eval": {
             "loss": [scalar.value for scalar in ea.Scalars("eval/loss")],
             "accuracy": [scalar.value for scalar in ea.Scalars("eval/accuracy")],
-        }
+        },
     }
     return metrics
+
 
 def train_model_with_goal(
     task_id: str,

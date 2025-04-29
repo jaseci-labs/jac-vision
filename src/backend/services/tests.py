@@ -1,6 +1,8 @@
-import pandas as pd
-from datetime import datetime
 import os
+from datetime import datetime
+
+import pandas as pd
+
 
 def save_training_log(model_name, config, metrics):
     log_data = {
@@ -10,7 +12,7 @@ def save_training_log(model_name, config, metrics):
         "epochs": config["epochs"],
         "peak_memory_gb": metrics.get("peak_memory_gb", 0),
         "training_time": metrics.get("train_runtime_minutes", 0),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
     print(f"[LOG DATA]: {log_data}")
@@ -36,31 +38,21 @@ def save_training_log(model_name, config, metrics):
     except Exception as e:
         print(f"Failed to save training log: {str(e)}")
 
+
 # Test data
 test_model = "unsloth/Llama-3.2-11B-Vision-bnb-4bit"
 
-test_config = {
-    "batch_size": 4,
-    "learning_rate": 2e-5,
-    "epochs": 10
-}
-test_metrics = {
-    "peak_memory_gb": 12.3,
-    "train_runtime_minutes": 45.6
-}
+test_config = {"batch_size": 4, "learning_rate": 2e-5, "epochs": 10}
+test_metrics = {"peak_memory_gb": 12.3, "train_runtime_minutes": 45.6}
 
 # Run test
 print("Starting test...")
-save_training_log(
-    model_name=test_model,
-    config=test_config,
-    metrics=test_metrics
-)
+save_training_log(model_name=test_model, config=test_config, metrics=test_metrics)
 
 # Verify output
 try:
     log_path = "src/backend/configs/adapt_training_logs.xlsx"
-    df = pd.read_excel(log_path, engine='openpyxl')
+    df = pd.read_excel(log_path, engine="openpyxl")
     print("\nLatest log entry:")
     print(df.tail(1).to_string(index=False))
     print("\nTest successful! Log entry added.")
