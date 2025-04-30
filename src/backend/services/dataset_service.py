@@ -21,6 +21,7 @@ MAX_RETRIES = 3
 SITE_URL = "<YOUR_SITE_URL>"
 SITE_NAME = "<YOUR_SITE_NAME>"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 # root_folder = "datasets/CarDataset"
 # json_file_path = "jsons/car_damage_data.json"
 
@@ -39,6 +40,14 @@ caption_workflow_state = {
     "current_job": False,
     "progress": {"total": 0, "processed": 0, "failed": 0, "errors": []},
 }
+
+def save_json(json_file_name, data):
+    if not os.path.exists(os.path.dirname(json_file_name)):
+        os.makedirs(os.path.dirname(json_file_name))
+    json_file_path = os.path.join("jsons", json_file_name)
+    with open(json_file_path, "w") as json_file:
+        json.dump(data, json_file, indent=4)
+    logger.info(f"JSON updated at {json_file_path}")
 
 
 def load_existing_data(file_path: str):
@@ -66,14 +75,6 @@ def process_image(
     for attempt in range(MAX_RETRIES):
         try:
             image_base64 = encode_image(image_path)
-            prompt = (
-                "Describe a car's condition in one paragraph for a car damage dataset, based on the provided image. "
-                "If visible damage exists, detail the type, the specific parts affected, the severity, and notable aspects like "
-                "the damage location. If no damage is visible, state that clearly and include the car’s "
-                "overall condition and any relevant observations. Ensure the description is clear, precise, and avoids assumptions "
-                "beyond the image content. Do not include introductory phrases like 'Here is a description,' 'Based on the image,' "
-                "'This image shows,' or any reference to the image itself and statements like 'further inspection is needed'; focus solely on the car’s state in a direct, standalone manner."
-            )
 
             if api_type.lower() == "openrouter":
                 payload = {
@@ -82,7 +83,7 @@ def process_image(
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": prompt},
+                                {"type": "text", "text": DEFAULT_PROMPT},
                                 {
                                     "type": "image_url",
                                     "image_url": {
@@ -112,14 +113,13 @@ def process_image(
                     caption=result["choices"][0]["message"]["content"],
                 )
             elif api_type.lower() == "openai":
-                OPENAI_URL = "https://api.openai.com/v1/chat/completions"
                 payload = {
                     "model": "gpt-4-vision-preview",
                     "messages": [
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": prompt},
+                                {"type": "text", "text": DEFAULT_PROMPT},
                                 {
                                     "type": "image_url",
                                     "image_url": {
@@ -152,7 +152,7 @@ def process_image(
                         {
                             "role": "user",
                             "parts": [
-                                {"text": prompt},
+                                {"text": DEFAULT_PROMPT},
                                 {
                                     "inline_data": {
                                         "mime_type": "image/jpeg",
@@ -206,7 +206,7 @@ def process_image_with_prompt(
             image_base64 = encode_image(image_path)
             if api_type.lower() == "openrouter":
                 payload = {
-                    "model": model,  # Use the model passed from the frontend
+                    "model": model,
                     "messages": [
                         {
                             "role": "user",
@@ -242,7 +242,6 @@ def process_image_with_prompt(
                 )
 
             elif api_type.lower() == "openai":
-                OPENAI_URL = "https://api.openai.com/v1/chat/completions"
                 payload = {
                     "model": "gpt-4-vision-preview",
                     "messages": [

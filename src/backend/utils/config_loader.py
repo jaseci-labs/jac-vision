@@ -4,6 +4,7 @@ import os
 import pandas as pd
 
 CONFIG_DIR = "configs"
+
 default_configs = {
     "unsloth/Pixtral-12B-2409": {
         "batch_size": 4,

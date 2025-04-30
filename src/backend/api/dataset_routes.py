@@ -21,21 +21,13 @@ from services.dataset_service import (
     load_existing_data,
     process_image,
     process_image_with_prompt,
+    save_json,
 )
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-def save_json(json_file_name, data):
-    if not os.path.exists(os.path.dirname(json_file_name)):
-        os.makedirs(os.path.dirname(json_file_name))
-    json_file_path = os.path.join("jsons", json_file_name)
-    with open(json_file_path, "w") as json_file:
-        json.dump(data, json_file, indent=4)
-    logger.info(f"JSON updated at {json_file_path}")
 
 
 @router.post("/upload-image-folder")
