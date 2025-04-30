@@ -4,13 +4,14 @@ from fastapi import Depends, HTTPException, UploadFile
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
-
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
 
 async def get_api_key(api_key: str = Depends(api_key_header)):
     if not api_key:
         raise HTTPException(status_code=401, detail="API key is required")
     return api_key
+
 
 class BaseDatasetRequest(BaseModel):
     dataset_path: str

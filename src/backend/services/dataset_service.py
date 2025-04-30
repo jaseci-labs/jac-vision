@@ -41,6 +41,7 @@ caption_workflow_state = {
     "progress": {"total": 0, "processed": 0, "failed": 0, "errors": []},
 }
 
+
 def save_json(json_file_name, data):
     if not os.path.exists(os.path.dirname(json_file_name)):
         os.makedirs(os.path.dirname(json_file_name))

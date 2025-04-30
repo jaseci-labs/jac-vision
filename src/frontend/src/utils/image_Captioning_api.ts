@@ -188,7 +188,7 @@ export const startAutoCaptioning = async (dataset_path: string, apiKey: string, 
         return response.data;
     } catch (error) {
         return handleApiError(error);
-    } 
+    }
 }
 
 export const getCaptioningProgress = async (): Promise<AutoCaptionProgressResponse> => {

@@ -1,11 +1,12 @@
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
-from backend.schemas.models import VQARequest
 from services.vqa_service import (
     clear_history,
     delete_history_entry,
     get_history,
     process_vqa,
 )
+
+from backend.schemas.models import VQARequest
 
 router = APIRouter()
 

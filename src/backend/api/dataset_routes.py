@@ -6,7 +6,15 @@ import shutil
 import zipfile
 from io import BytesIO
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile, Depends
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import APIKeyHeader
 from schemas.models import (
@@ -68,9 +76,7 @@ async def upload_image_folder(
 
 
 @router.get("/get-next-image")
-async def get_next_image(
-    request: BaseDatasetRequest
-):
+async def get_next_image(request: BaseDatasetRequest):
     if not request.api_key:
         raise HTTPException(status_code=400, detail="API key is required")
     image_files = get_all_images(request.dataset_path)
@@ -79,7 +85,12 @@ async def get_next_image(
     image_path, relative_path = image_files[0]
     prompt = caption_workflow_state["custom_prompt"] or DEFAULT_PROMPT
     image_data = process_image_with_prompt(
-        image_path, relative_path, prompt, request.api_key, request.api_type, request.model
+        image_path,
+        relative_path,
+        prompt,
+        request.api_key,
+        request.api_type,
+        request.model,
     )
     if image_data:
         return {
