@@ -10,3 +10,4 @@ src/backend/mypy.ini
 src/backend/.pre-commit-config.yaml
 src/backend/.flake8
 src/backend/.env
+src/backend/.env
