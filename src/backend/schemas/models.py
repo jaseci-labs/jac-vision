@@ -1,7 +1,22 @@
 from typing import List, Optional
 
-from fastapi import UploadFile
+from fastapi import Depends, HTTPException, UploadFile
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
+
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+async def get_api_key(api_key: str = Depends(api_key_header)):
+    if not api_key:
+        raise HTTPException(status_code=401, detail="API key is required")
+    return api_key
+
+class BaseDatasetRequest(BaseModel):
+    dataset_path: str
+    api_key: str = Depends(get_api_key)
+    api_type: str = "openrouter"
+    model: str = "google/gemma-3-12b-it:free"
 
 
 class FineTuningRequest(BaseModel):
@@ -37,11 +52,11 @@ class GoalTrainingRequest(BaseModel):
 
 
 class VQARequest(BaseModel):
-    model: Optional[str] = None
-    image: Optional[UploadFile] = None
+    model: str
+    image: UploadFile
     question: str
-    api_key: Optional[str] = None
-    api_type: Optional[str] = None
+    api_key: str
+    api_type: str = "gemini"
 
 
 class CaptionRequest(BaseModel):

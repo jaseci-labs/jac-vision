@@ -1,4 +1,5 @@
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from backend.schemas.models import VQARequest
 from services.vqa_service import (
     clear_history,
     delete_history_entry,
@@ -11,30 +12,26 @@ router = APIRouter()
 
 @router.post("/process_vqa")
 async def process_vqa_endpoint(
-    model: str = Form(None),
-    image: UploadFile = File(None),
-    question: str = Form(None),
-    api_key: str = Form(None),
-    api_type: str = Form(None),
+    request: VQARequest,
 ):
-    if not question:
+    if not request.question:
         raise HTTPException(status_code=400, detail="Missing question")
 
     image_content = None
-    if image:
-        if not image.content_type.startswith("image/"):
+    if request.image:
+        if not request.image.content_type.startswith("image/"):
             raise HTTPException(
                 status_code=400, detail="Uploaded file must be an image"
             )
-        image_content = await image.read()
+        image_content = await request.image.read()
 
     try:
         result = process_vqa(
             image_content=image_content,
-            question=question,
-            api_key=api_key,
-            api_type=api_type,
-            model_name=model,
+            question=request.question,
+            api_key=request.api_key,
+            api_type=request.api_type,
+            model_name=request.model,
         )
         return result
     except Exception as e:
