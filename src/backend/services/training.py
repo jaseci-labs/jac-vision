@@ -89,7 +89,12 @@ def save_training_log(model_name, config, metrics):
         print(f"Failed to save training log: {str(e)}")
 
 
-def train_model(model_name: str, task_id: str, dataset_path: str, app_name: str):
+def train_model(
+        model_name: str, 
+        task_id: str, 
+        dataset_path: str, 
+        app_name: str
+    ):
     if model_name not in AVAILABLE_MODELS:
         raise HTTPException(status_code=400, detail="Invalid model name")
 
@@ -417,15 +422,16 @@ def train_adapt_model(
                 bf16=is_bf16_supported(),
                 logging_steps=1,
                 optim="adamw_8bit",
-                # output_dir=f"outputs/{task_id}",
+                output_dir=f"outputs/{app_name}",
                 remove_unused_columns=False,
                 dataset_kwargs={"skip_prepare_dataset": True},
                 dataset_num_proc=4,
                 lr_scheduler_type="cosine",  # linear
                 max_seq_length=2048,
-                report_to="none",
-                # evaluation_strategy="epoch",
-                # per_device_eval_batch_size=2,
+                report_to="tensorboard",
+                logging_dir=f"logs/{app_name}",
+                eval_strategy="epoch",
+                per_device_eval_batch_size=2,
                 # load_best_model_at_end=True,
                 # metric_for_best_model="eval_loss",
             ),
@@ -454,6 +460,7 @@ def train_adapt_model(
             "error": None,
             "metrics": stats,
             "log_history": log_history,
+            "log_dir": f"logs/{app_name}",
         }
         trained_models[task_id] = (model, tokenizer)
 
