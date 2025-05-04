@@ -411,7 +411,7 @@ def train_adapt_model(
             data_collator=UnslothVisionDataCollator(model, tokenizer),
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
-            compute_metrics=compute_metrics,
+            # compute_metrics=compute_metrics,
             args=SFTConfig(
                 per_device_train_batch_size=final_config["batch_size"],
                 gradient_accumulation_steps=4,
