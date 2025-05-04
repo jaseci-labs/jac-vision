@@ -57,10 +57,12 @@ def get_adaptive_config(model_name: str) -> dict:
 
 
 def get_adaptive_config_from_sheet(model_name: str) -> dict:
-    creds = Credentials.from_service_account_file("config/jac-vision-google-config.json")
+    scopes = ["https://www.googleapis.com/auth/spreadsheets"]
+
+    creds = Credentials.from_service_account_file("config/jac-vision-google-config.json", scopes=scopes)
     client = gspread.authorize(creds)
 
-    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/18mCBvp29xbuIqBE1ivabvG4L8u5gR0J-oogd9yuBN4w/edit?usp=sharing").sheet1
+    sheet = client.open("VisionModelConfigs").sheet1
     data = sheet.get_all_records()
 
     for row in data:
