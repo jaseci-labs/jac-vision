@@ -14,6 +14,7 @@ from schemas.models import (
 from services.save import save_gguf_model, save_model
 from services.training import (
     AVAILABLE_MODELS,
+    get_model_list,
     get_tensorboard_logs,
     retreive_captioned_dataset,
     task_status,
@@ -46,7 +47,7 @@ adaptive_configs = {
 
 @router.get("/models")
 def get_models():
-    return {"models": AVAILABLE_MODELS}
+    return {"models": get_model_list()}
 
 
 @router.get("/datasets")

@@ -33,6 +33,44 @@ default_configs = {
     },
 }
 
+
+# -------------------------------------------- #
+# Google Sheets API
+
+def authorize_sheet_access():
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets.readonly",
+        "https://www.googleapis.com/auth/drive.readonly"
+    ]
+    creds = Credentials.from_service_account_file("configs/jac-vision-google-config.json", scopes=scopes)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key("18mCBvp29xbuIqBE1ivabvG4L8u5gR0J-oogd9yuBN4w").sheet1
+    data = sheet.get_all_records()
+    return data
+
+
+def load_model_from_sheet() -> list:
+    data = authorize_sheet_access()
+    models = []
+    for row in data:
+        models.append(row["model_name"])
+    return models
+
+
+def get_adaptive_config_from_sheet(model_name: str) -> dict:
+    data = authorize_sheet_access()
+    for row in data:
+        if row["model_name"] == model_name:
+            return {
+                "batch_size": int(row["batch_size"]),
+                "learning_rate": float(row["learning_rate"]),
+                "epochs": int(row["epochs"]),
+            }
+
+    raise ValueError(f"No config found for model: {model_name}")
+
+# -------------------------------------------- #
+
 adaptive_configs = {
     "unsloth/Llama-3.2-11B-Vision-bnb-4bit": {
         "batch_size": 4,
@@ -54,30 +92,6 @@ adaptive_configs = {
 
 def get_adaptive_config(model_name: str) -> dict:
     return adaptive_configs.get(model_name, {})
-
-
-def get_adaptive_config_from_sheet(model_name: str) -> dict:
-    scopes = [
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/drive.readonly"
-    ]
-
-    creds = Credentials.from_service_account_file("configs/jac-vision-google-config.json", scopes=scopes)
-    client = gspread.authorize(creds)
-
-    sheet = client.open_by_key("18mCBvp29xbuIqBE1ivabvG4L8u5gR0J-oogd9yuBN4w").sheet1
-    data = sheet.get_all_records()
-
-    for row in data:
-        if row["model_name"] == model_name:
-            return {
-                "batch_size": int(row["batch_size"]),
-                "learning_rate": float(row["learning_rate"]),
-                "epochs": int(row["epochs"]),
-            }
-
-    raise ValueError(f"No config found for model: {model_name}")
-
 
 def load_model_config(model_name: str, goal_type: str, target: str) -> dict:
     filename_map = {
