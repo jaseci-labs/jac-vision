@@ -18,7 +18,7 @@ from services.training_metrics import (
 from sklearn.model_selection import train_test_split
 from tensorboard.backend.event_processing import event_accumulator
 from trl import SFTConfig, SFTTrainer
-from utils.config_loader import get_adaptive_config, load_model_config
+from utils.config_loader import get_adaptive_config, load_model_config, get_adaptive_config_from_sheet
 from utils.dataset_utils import get_custom_dataset
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
@@ -350,7 +350,8 @@ def train_adapt_model(
     learning_rate: float = None,
     epochs: int = None,
 ):
-    config = get_adaptive_config(model_name)
+    # config = get_adaptive_config(model_name)
+    config = get_adaptive_config_from_sheet(model_name)
 
     final_config = {
         "batch_size": batch_size or config.get("batch_size", 4),

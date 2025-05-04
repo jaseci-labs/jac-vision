@@ -2,6 +2,8 @@ import difflib
 import os
 
 import pandas as pd
+import gspread
+from google.oauth2.service_account import Credentials
 
 CONFIG_DIR = "configs"
 default_configs = {
@@ -52,6 +54,24 @@ adaptive_configs = {
 
 def get_adaptive_config(model_name: str) -> dict:
     return adaptive_configs.get(model_name, {})
+
+
+def get_adaptive_config_from_sheet(model_name: str) -> dict:
+    creds = Credentials.from_service_account_file("config/jac-vision-google-config.json")
+    client = gspread.authorize(creds)
+
+    sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/18mCBvp29xbuIqBE1ivabvG4L8u5gR0J-oogd9yuBN4w/edit?usp=sharing").sheet1
+    data = sheet.get_all_records()
+
+    for row in data:
+        if row["model_name"] == model_name:
+            return {
+                "batch_size": int(row["batch_size"]),
+                "learning_rate": float(row["learning_rate"]),
+                "epochs": int(row["epochs"]),
+            }
+
+    raise ValueError(f"No config found for model: {model_name}")
 
 
 def load_model_config(model_name: str, goal_type: str, target: str) -> dict:

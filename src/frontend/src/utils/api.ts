@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = "https://20kbur51erc41s-5000.proxy.runpod.net";
+export const API_URL = "https://7ka2vvmporzja6-4000.proxy.runpod.net";
 
 // Define TypeScript interfaces for API responses
 export interface Model {
@@ -303,7 +303,7 @@ export const fetchSystemInfo = async (): Promise<SystemInfoResponse> => {
 // Fine-tune a model
 export const finetuneModel = async (model_name: string, dataset_path: string, app_name: string): Promise<FineTuneResponse> => {
   try {
-    const response = await axios.post(`${API_URL}/api/finetune/start-finetuning`, { model_name, dataset_path, app_name });
+    const response = await axios.post(`${API_URL}/api/finetune/start-adapt-finetune`, { model_name, dataset_path, app_name });
     return response.data;
   } catch (error) {
     return handleApiError(error);
