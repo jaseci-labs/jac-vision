@@ -57,7 +57,7 @@ def load_model_from_sheet() -> list:
     return models
 
 
-def get_hyperparameters_from_sheet(model_name: str) -> dict:
+def load_hyperparameters_from_sheet(model_name: str) -> dict:
     data = authorize_sheet_access()
     for row in data:
         if row["model_name"] == model_name:
