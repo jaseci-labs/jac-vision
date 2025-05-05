@@ -3,7 +3,7 @@ import Select from 'react-select';
 import { Box, Button, TextField, Typography, CircularProgress, Accordion, AccordionSummary, AccordionDetails, Table, TableHead, TableRow, TableBody, TableCell } from '@mui/material';
 import LinearProgress, { LinearProgressProps } from '@mui/material/LinearProgress';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { finetuneModel, fetchModels, getTaskStatus, fetchDatasets, API_URL } from '../utils/api';
+import { finetuneModel, fetchModels, getTaskStatus, fetchDatasets, API_URL, getHyperparameters } from '../utils/api';
 import { toast } from 'react-toastify';
 import { useFineTuneStore } from '../utils/FineTuneStore';
 import Graph from './Graphs';
@@ -42,7 +42,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     viewProgress,
     logs,
     epochLogs,
-    datasetSize,
+    batchSize,
     epochs,
     learningRate,
     modelName,
@@ -56,7 +56,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setViewProgress,
     setLogs,
     setEpochLogs,
-    setDatasetSize,
+    setBatchSize,
     setEpochs,
     setLearningRate,
     setModelName,
@@ -169,6 +169,26 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     };
   }, [taskId]);
 
+  const handleModelSelect = async (option: any) => {
+    const selected = option?.value || '';
+    setSelectedModel(selected);
+
+    await getHyperparameters(selected)
+      .then((hyperparameters) => {
+        if (hyperparameters) {
+          setBatchSize(hyperparameters.batch_size || '');
+          setEpochs(hyperparameters.epochs || '');
+          setLearningRate(hyperparameters.learning_rate || '');
+        }
+      }
+      )
+      .catch((error) => {
+        const errorMessage = error.message || 'Error fetching hyperparameters. Check the console.';
+        setError(errorMessage);
+        console.error(error);
+      }
+      );
+  };
 
   const handleFinetune = async () => {
     if (!selectedModel || !datasetLink) {
@@ -249,7 +269,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           <Select
             placeholder="Select Model"
             options={modelOptions}
-            onChange={(option) => setSelectedModel(option?.value || '')}
+            onChange={handleModelSelect}
             value={modelOptions.find((option) => option.value === selectedModel) || null}
             styles={{
               container: (base) => ({
@@ -378,13 +398,9 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
         <AccordionDetails sx={{ backgroundColor: '#2D3748' }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, flexDirection: 'column', gap: 2 }}>
             {[
-              { label: 'Training Size', value: datasetSize, set: setDatasetSize },
+              { label: 'Batch Size', value: batchSize, set: setBatchSize },
               { label: 'Epochs', value: epochs, set: setEpochs },
-              // { label: 'Training Steps', value: steps, set: setSteps },
               { label: 'Learning Rate', value: learningRate, set: setLearningRate },
-              // { label: 'Batch Size', value: batchSize, set: setBatchSize },
-              // { label: 'Sequence Length', value: sequenceLength, set: setSequenceLength },
-              // { label: 'Mixed Precision', value: precision, set: setPrecision },
             ].map((item, index) => (
               <Box key={index} sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 1 }}>

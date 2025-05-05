@@ -21,7 +21,7 @@ from services.training import (
     train_adapt_model,
     train_model,
     train_model_with_goal,
-    get_hyperparameters_list
+    get_hyperparameters_list,
 )
 
 router = APIRouter()
@@ -52,7 +52,7 @@ def get_models():
 
 @router.get("/get-hyperparameters/{model_name}")
 def get_hyperparameters(model_name: str):
-    return get_hyperparameters_list(model_name)
+    return {"hyperparameters": get_hyperparameters_list(model_name)}
 
 
 @router.get("/datasets")
@@ -160,15 +160,15 @@ def stream_status(task_id: str):
             time.sleep(1)
 
     return StreamingResponse(
-        event_generator(), 
+        event_generator(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
             "Access-Control-Allow-Origin": "*",
-        }
-)
+        },
+    )
 
 
 @router.post("/save-model")

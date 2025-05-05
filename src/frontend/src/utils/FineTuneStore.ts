@@ -12,7 +12,7 @@ type FineTuneStore = {
   viewProgress: number;
   logs: { status: string; progress: string; epoch: string | null; loss: string | null }[];
   epochLogs: { epoch: string; training_loss: string; validation_loss: string }[];
-  datasetSize: string;
+  batchSize: string;
   epochs: string;
   learningRate: string;
   modelName: string;
@@ -26,7 +26,7 @@ type FineTuneStore = {
   setViewProgress: (progress: number) => void;
   setLogs: (logs: { status: string; progress: string; epoch: string | null; loss: string | null }[]) => void;
   setEpochLogs: (epochLogs: { epoch: string; training_loss: string; validation_loss: string }[]) => void;
-  setDatasetSize: (size: string) => void;
+  setBatchSize: (size: string) => void;
   setEpochs: (epochs: string) => void;
   setLearningRate: (rate: string) => void;
   setModelName: (modelName: string) => void;
@@ -43,7 +43,7 @@ export const useFineTuneStore = create<FineTuneStore>((set) => ({
   viewProgress: 0,
   logs: [],
   epochLogs: [],
-  datasetSize: '',
+  batchSize: '',
   epochs: '',
   learningRate: '',
   modelName: '',
@@ -57,7 +57,7 @@ export const useFineTuneStore = create<FineTuneStore>((set) => ({
   setViewProgress: (progress) => set({ viewProgress: progress }),
   setLogs: (logs) => set({ logs }),
   setEpochLogs: (epochLogs) => set({ epochLogs }),
-  setDatasetSize: (size) => set({ datasetSize: size }),
+  setBatchSize: (size) => set({ batchSize: size }),
   setEpochs: (epochs) => set({ epochs }),
   setLearningRate: (rate) => set({ learningRate: rate }),
   setModelName: (modelName) => set({ modelName }),

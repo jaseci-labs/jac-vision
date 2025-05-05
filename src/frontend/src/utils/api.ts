@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_URL = "https://7ka2vvmporzja6-4000.proxy.runpod.net";
+export const API_URL = "https://1a3720yvnpzeol-4000.proxy.runpod.net";
 
 // Define TypeScript interfaces for API responses
 export interface Model {
@@ -310,7 +310,19 @@ export const finetuneModel = async (model_name: string, dataset_path: string, ap
   }
 };
 
-
+export const getHyperparameters = async (model_name: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_URL}/api/finetune/get-hyperparameters/${model_name}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch hyperparameters');
+    }
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+};
 
 export const getTaskStatus = async (taskId: string) => {
   try {
