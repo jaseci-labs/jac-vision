@@ -10,6 +10,7 @@ from schemas.models import (
     GGUFSaveRequest,
     GoalTrainingRequest,
     SaveModelRequest,
+    GetHyperParamRequest
 )
 from services.save import save_gguf_model, save_model
 from services.training import (
@@ -50,9 +51,9 @@ def get_models():
     return {"models": get_model_list()}
 
 
-@router.get("/get-hyperparameters/{model_name}")
-def get_hyperparameters(model_name: str):
-    return {"hyperparameters": get_hyperparameters_list(model_name)}
+@router.get("/get-hyperparameters")
+def get_hyperparameters(request: GetHyperParamRequest):
+    return {"hyperparameters": get_hyperparameters_list(request.model_name)}
 
 
 @router.get("/datasets")
