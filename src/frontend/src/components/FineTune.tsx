@@ -158,7 +158,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
           {
             epoch: epochStatus.epoch,
             training_loss: epochStatus.training_loss,
-            validation_loss: epochStatus.validation_loss ,
+            validation_loss: epochStatus.validation_loss,
           },
         ]);
       }
@@ -174,14 +174,14 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
     setSelectedModel(selected);
 
     await getHyperparameters(selected)
-      .then((hyperparameters) => {
-        if (hyperparameters) {
-          setBatchSize(hyperparameters.batch_size || '');
-          setEpochs(hyperparameters.epochs || '');
-          setLearningRate(hyperparameters.learning_rate || '');
+      .then((response) => {
+        const hyper = response?.hyperparameters;
+        if (hyper) {
+          setBatchSize(hyper.batch_size || '');
+          setEpochs(hyper.epochs || '');
+          setLearningRate(hyper.learning_rate || '');
         }
-      }
-      )
+      })
       .catch((error) => {
         const errorMessage = error.message || 'Error fetching hyperparameters. Check the console.';
         setError(errorMessage);
@@ -190,7 +190,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       );
   };
 
-  const handleFinetune = async () => {
+  async function handleFinetune() {
     if (!selectedModel || !datasetLink) {
       setError('Please select a model and provide a dataset link.');
       toast.error('Please select a model and provide a dataset link.');
@@ -214,7 +214,7 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       toast.error(errorMessage);
       console.error(error);
     }
-  };
+  }
 
   return (
     <Box
