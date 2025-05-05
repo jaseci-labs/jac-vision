@@ -51,7 +51,7 @@ def get_models():
     return {"models": get_model_list()}
 
 
-@router.get("/get-hyperparameters")
+@router.post("/get-hyperparameters")
 def get_hyperparameters(request: GetHyperParamRequest):
     return {"hyperparameters": get_hyperparameters_list(request.model_name)}
 
