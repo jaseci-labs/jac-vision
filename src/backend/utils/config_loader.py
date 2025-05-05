@@ -57,18 +57,6 @@ def load_model_from_sheet() -> list:
     return models
 
 
-def load_hyperparameters_from_sheet(model_name: str) -> dict:
-    data = authorize_sheet_access()
-    for row in data:
-        if row["model_name"] == model_name:
-            return {
-                "batch_size": int(row["batch_size"]),
-                "learning_rate": float(row["learning_rate"]),
-                "epochs": int(row["epochs"])
-            }
-    raise ValueError(f"No hyperparameters found for model: {model_name}")
-
-
 def get_adaptive_config_from_sheet(model_name: str) -> dict:
     data = authorize_sheet_access()
     for row in data:

@@ -22,7 +22,6 @@ from utils.config_loader import (
     load_model_config, 
     load_model_from_sheet, 
     get_adaptive_config_from_sheet, 
-    load_hyperparameters_from_sheet,
     )
 from utils.dataset_utils import get_custom_dataset
 
@@ -41,7 +40,7 @@ def get_model_list():
     return load_model_from_sheet()
 
 def get_hyperparameters_list(model_name):
-    return load_hyperparameters_from_sheet(model_name)
+    return get_adaptive_config_from_sheet(model_name)
 
 def retreive_captioned_dataset():
     dataset_dir = "datasets"
