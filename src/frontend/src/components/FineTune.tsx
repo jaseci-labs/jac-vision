@@ -164,15 +164,6 @@ const FineTune: React.FC<FineTuneProps> = ({ selectedModel, setSelectedModel, to
       }
     };
 
-    eventSource.onerror = (error) => {
-      console.error("SSE error:", error);
-      eventSource.close();
-      setLogs([
-        ...logs,
-        { status: 'Error', progress: 'N/A', epoch: 'N/A', loss: 'N/A' },
-      ]);
-    };
-
     return () => {
       eventSource.close();
     };
