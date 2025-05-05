@@ -21,7 +21,7 @@ from services.training import (
     train_adapt_model,
     train_model,
     train_model_with_goal,
-    trained_models,
+    get_hyperparameters_list
 )
 
 router = APIRouter()
@@ -48,6 +48,11 @@ adaptive_configs = {
 @router.get("/models")
 def get_models():
     return {"models": get_model_list()}
+
+
+@router.get("/get-hyperparameters/{model_name}")
+def get_hyperparameters(model_name: str):
+    return get_hyperparameters_list(model_name)
 
 
 @router.get("/datasets")

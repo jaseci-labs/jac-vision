@@ -18,7 +18,12 @@ from services.training_metrics import (
 from sklearn.model_selection import train_test_split
 from tensorboard.backend.event_processing import event_accumulator
 from trl import SFTConfig, SFTTrainer
-from utils.config_loader import load_model_config, load_model_from_sheet, get_adaptive_config_from_sheet
+from utils.config_loader import (
+    load_model_config, 
+    load_model_from_sheet, 
+    get_adaptive_config_from_sheet, 
+    load_hyperparameters_from_sheet
+    )
 from utils.dataset_utils import get_custom_dataset
 
 os.environ["UNSLOTH_COMPILED_CACHE"] = "/tmp/unsloth_compiled_cache"
@@ -34,6 +39,9 @@ trained_models = {}
 
 def get_model_list():
     return load_model_from_sheet()
+
+def get_hyperparameters_list(model_name):
+    return load_hyperparameters_from_sheet(model_name)
 
 def retreive_captioned_dataset():
     dataset_dir = "datasets"
