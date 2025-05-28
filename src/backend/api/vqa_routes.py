@@ -6,7 +6,7 @@ from services.vqa_service import (
     process_vqa,
 )
 
-from backend.schemas.models import VQARequest
+from schemas.models import VQARequest
 
 router = APIRouter()
 
