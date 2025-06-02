@@ -2,8 +2,8 @@ import LoginPage from "@/modules/users/pages/login-page";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Login | Task Manager",
-  description: "Login to your Task Manager account",
+  title: "Login | Jac Vision",
+  description: "Login to your Jac Vision account",
 };
 
 export default function Login() {

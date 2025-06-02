@@ -7,8 +7,8 @@ import { Providers } from "./providers"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Task Manager",
-  description: "A simple task manager built with atomic design, Redux, and shadcn UI",
+  title: "Jac Vision",
+  description: "Work with Vision Language Models from Jaseci",
 }
 
 export default function RootLayout({
@@ -18,6 +18,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/placeholder-logo.png" />
+      </head>
       <body className={inter.className}>
         <Providers>{children}</Providers>
       </body>
