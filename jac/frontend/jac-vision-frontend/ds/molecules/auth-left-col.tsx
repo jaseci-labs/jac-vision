@@ -7,7 +7,7 @@ interface AuthLeftColProps {
 }
 
 export const AuthLeftCol = ({
-  title = "Jaseci",
+  title = "Jac Vision",
   subtitle = "Build the next generation of AI Products",
 }: AuthLeftColProps) => {
   return (
