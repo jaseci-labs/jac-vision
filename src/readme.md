@@ -1,4 +1,4 @@
-# FastAPI Backend Setup on RunPod
+# Jac Vision Backend Setup on RunPod
 
 This guide will walk you through setting up and running your FastAPI backend on a RunPod instance and linking it with your frontend.
 
